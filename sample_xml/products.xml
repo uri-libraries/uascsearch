@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<product_catalog>
+    <category name="Electronics">
+        <product id="E001">
+            <name>Laptop Computer</name>
+            <brand>TechBrand</brand>
+            <model>UltraBook Pro</model>
+            <price currency="USD">999.99</price>
+            <specifications>
+                <processor>Intel Core i7</processor>
+                <memory>16GB RAM</memory>
+                <storage>512GB SSD</storage>
+                <display>15.6" Full HD</display>
+            </specifications>
+            <in_stock>true</in_stock>
+            <warranty>2 years</warranty>
+        </product>
+        <product id="E002">
+            <name>Smartphone</name>
+            <brand>MobileTech</brand>
+            <model>Galaxy X</model>
+            <price currency="USD">699.99</price>
+            <specifications>
+                <processor>Snapdragon 888</processor>
+                <memory>8GB RAM</memory>
+                <storage>128GB</storage>
+                <display>6.5" AMOLED</display>
+            </specifications>
+            <in_stock>true</in_stock>
+            <warranty>1 year</warranty>
+        </product>
+    </category>
+    <category name="Home">
+        <product id="H001">
+            <name>Coffee Maker</name>
+            <brand>BrewMaster</brand>
+            <model>Deluxe 2000</model>
+            <price currency="USD">149.99</price>
+            <specifications>
+                <capacity>12 cups</capacity>
+                <features>Programmable timer, Auto-shutoff</features>
+                <material>Stainless steel</material>
+            </specifications>
+            <in_stock>false</in_stock>
+            <warranty>1 year</warranty>
+        </product>
+    </category>
+</product_catalog>

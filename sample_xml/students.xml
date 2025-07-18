@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<university>
+    <students>
+        <student id="001">
+            <name>John Smith</name>
+            <email>john.smith@university.edu</email>
+            <major>Computer Science</major>
+            <gpa>3.8</gpa>
+            <enrollment_date>2022-09-01</enrollment_date>
+            <courses>
+                <course code="CS101">Introduction to Programming</course>
+                <course code="CS201">Data Structures</course>
+                <course code="CS301">Algorithms</course>
+            </courses>
+        </student>
+        <student id="002">
+            <name>Sarah Johnson</name>
+            <email>sarah.johnson@university.edu</email>
+            <major>Biology</major>
+            <gpa>3.9</gpa>
+            <enrollment_date>2021-09-01</enrollment_date>
+            <courses>
+                <course code="BIO101">General Biology</course>
+                <course code="BIO201">Genetics</course>
+                <course code="BIO301">Molecular Biology</course>
+            </courses>
+        </student>
+        <student id="003">
+            <name>Michael Davis</name>
+            <email>michael.davis@university.edu</email>
+            <major>Physics</major>
+            <gpa>3.7</gpa>
+            <enrollment_date>2023-01-15</enrollment_date>
+            <courses>
+                <course code="PHY101">Classical Mechanics</course>
+                <course code="PHY201">Quantum Physics</course>
+                <course code="PHY301">Thermodynamics</course>
+            </courses>
+        </student>
+    </students>
+</university>

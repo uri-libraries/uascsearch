@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-g9^z*(ag!&)v-&5e595i7x9eh)49^$k#ly=vchsvm5aittqk#e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'web.uri.edu', 'webarchives.apps.uri.edu']
 
 
 # Application definition
@@ -37,9 +37,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+    # Third-party apps
+    'rest_framework',
+    'corsheaders',
+    
+    # Your app
+    'search_app',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Must be at the top
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -58,6 +66,7 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -120,3 +129,20 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True  # For development
+CORS_ALLOWED_ORIGINS = [
+    "https://web.uri.edu",
+    "http://web.uri.edu",
+    "https://webarchives.apps.uri.edu",
+    "http://webarchives.apps.uri.edu",
+]
+
+# XML Search Settings
+XML_SEARCH_SETTINGS = {
+    'DEFAULT_REQUEST_DELAY': 1.0,  # Default delay between requests
+    'REQUEST_TIMEOUT': 30,         # Request timeout in seconds
+    'MAX_FILE_SIZE': 10 * 1024 * 1024,  # 10MB max file size
+    'ALLOWED_EXTENSIONS': ['.xml', '.rdf', '.atom', '.rss'],
+}
