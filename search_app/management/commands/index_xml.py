@@ -76,7 +76,7 @@ class Command(BaseCommand):
                     filename = os.path.basename(urlparse(xml_file).path)
                     
                     # Save to database
-                    XMLDocument.objects.update_or_create(
+                    document, created = XMLDocument.objects.update_or_create(
                         filename=filename,
                         defaults={
                             'content': content,
@@ -84,8 +84,13 @@ class Command(BaseCommand):
                             'file_size': len(response.content),
                             'last_modified': response.headers.get('Last-Modified', ''),
                             'content_type': response.headers.get('Content-Type', ''),
+                            'title': '',  # Will be set below
                         }
                     )
+                    
+                    # Extract and save title
+                    document.title = document.extract_title_from_content()
+                    document.save()
                     
                     indexed_count += 1
                     self.stdout.write(f'✓ Indexed: {filename} ({len(content)} chars)')

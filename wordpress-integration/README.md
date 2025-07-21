@@ -320,3 +320,9 @@ define('WP_DEBUG_LOG', true);
 - Enable caching on the Django side
 - Consider using a CDN for static assets
 - Monitor API response times
+
+---
+
+## Updated Features
+- **Improved Title Decoding**: Titles now decode URL-encoded characters (e.g., `%20` becomes a space).
+- **Enhanced Snippet Generation**: Snippets are extracted from specific fields (`Creator`, `Title`, `Dates`, `Abstract`) for more relevant search results.

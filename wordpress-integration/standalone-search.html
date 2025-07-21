@@ -111,6 +111,14 @@
         .result-snippet {
             color: #666;
             margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .result-snippet mark {
+            background-color: #ffff99;
+            padding: 1px 2px;
+            border-radius: 2px;
+            font-weight: bold;
         }
         
         .result-meta {
@@ -185,7 +193,7 @@
     
     <script>
         // Replace with your actual API URL
-        const API_BASE_URL = 'http://127.0.0.1:8000';
+        const API_BASE_URL = 'http://127.0.0.1:8001';
         
         async function performSearch(event) {
             event.preventDefault();
@@ -222,13 +230,15 @@
             `;
             
             data.results.forEach(result => {
+                const title = result.title || decodeURIComponent(result.filename).replace('.xml', '');
                 html += `
                     <div class="result-item">
                         <div class="result-title">
-                            <a href="${result.url}" target="_blank">${decodeURIComponent(result.filename)}</a>
+                            <a href="${result.url}" target="_blank">${title}</a>
                         </div>
                         <div class="result-snippet">${result.snippet}</div>
                         <div class="result-meta">
+                            File: ${decodeURIComponent(result.filename)} | 
                             Size: ${formatFileSize(result.file_size)} | 
                             ${result.last_modified ? 'Modified: ' + new Date(result.last_modified).toLocaleDateString() : ''}
                         </div>
