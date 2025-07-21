@@ -93,7 +93,10 @@ curl "http://127.0.0.1:8000/search/?q=history"
 - WordPress site with admin access
 - FTP/SFTP access or file manager
 
-#### Step 1: Upload Plugin Files
+**Choose the appropriate WordPress integration based on your site's restrictions:**
+
+#### Option A: Full JavaScript Plugin (Recommended)
+For sites that allow JavaScript and custom plugins.
 
 1. Create a new directory: `/wp-content/plugins/uri-xml-search/`
 2. Upload these files from the `wordpress-integration/` folder:
@@ -102,7 +105,25 @@ curl "http://127.0.0.1:8000/search/?q=history"
    - `uri-xml-search.css`
    - `search-results-template.php`
 
-#### Step 2: Activate the Plugin
+#### Option B: PHP-Only Plugin (Locked-Down Sites)
+For sites that restrict JavaScript but allow PHP plugins.
+
+1. Create a new directory: `/wp-content/plugins/uri-xml-search-nojs/`
+2. Upload these files from the `wordpress-integration/` folder:
+   - `uri-xml-search-nojs.php`
+   - `uri-xml-search-nojs.css`
+
+#### Option C: Simple Link Plugin (Highly Restricted)
+For sites that only allow basic shortcodes.
+
+1. Create a new directory: `/wp-content/plugins/xml-search-link/`
+2. Upload this file from the `wordpress-integration/` folder:
+   - `xml-search-link.php`
+3. Host the `standalone-search.html` file on your server
+
+**For detailed WordPress installation instructions, see [`wordpress-integration/README.md`](wordpress-integration/README.md)**
+
+#### General WordPress Setup Steps
 
 1. Go to WordPress Admin → Plugins
 2. Find "URI XML Search" and click "Activate"
