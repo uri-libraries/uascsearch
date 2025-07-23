@@ -80,11 +80,11 @@ class Command(BaseCommand):
                     # Extract relevant fields from XML content
                     extracted_fields = self.extract_fields_from_content(content)
                     
-                    # Save to database
+                    # Save to database (only store extracted fields to save space)
                     document, created = XMLDocument.objects.update_or_create(
                         filename=filename,
                         defaults={
-                            'content': content if options['keep_full_content'] else '',  # Optional: keep full content
+                            'content': '',  # Don't store full content to save space
                             'title': extracted_fields.get('title', ''),
                             'creator': extracted_fields.get('creator', ''),
                             'dates': extracted_fields.get('dates', ''),
@@ -177,9 +177,9 @@ class Command(BaseCommand):
         return ' '.join(filter(None, text_content))
 
     def extract_fields_from_content(self, content):
-        """Extract specific fields (Creator, Title, Dates, Abstract) from XML content"""
-        from bs4 import BeautifulSoup
+        """Extract specific fields from XML content (or text content)"""
         import urllib.parse
+        import re
         
         fields = {
             'title': '',
@@ -189,48 +189,73 @@ class Command(BaseCommand):
         }
         
         try:
-            soup = BeautifulSoup(content, 'html.parser')
+            # Since the content appears to be extracted text rather than structured XML,
+            # we'll use pattern matching to find relevant information
             
-            # Method 1: Look for direct XML elements (like <title>, <abstract>, etc.)
-            title_elem = soup.find(['title', 'Title'])
-            if title_elem and title_elem.get_text(strip=True):
-                fields['title'] = urllib.parse.unquote(title_elem.get_text(strip=True))
+            # Look for title patterns
+            title_patterns = [
+                r'Records of ([^0-9\n]+)',  # "Records of Hera Gallery"
+                r'Finding aid[^:]*:\s*([^\n]+)',
+                r'Collection[^:]*:\s*([^\n]+)',
+                r'Papers of ([^0-9\n]+)',
+                r'Guide to ([^0-9\n]+)',
+            ]
             
-            # Look for authors/creators
-            author_elems = soup.find_all(['author', 'Author', 'creator', 'Creator'])
-            if author_elems:
-                authors = [elem.get_text(strip=True) for elem in author_elems if elem.get_text(strip=True)]
-                fields['creator'] = ', '.join(authors)
+            for pattern in title_patterns:
+                match = re.search(pattern, content, re.IGNORECASE)
+                if match:
+                    fields['title'] = match.group(1).strip()
+                    break
             
-            # Look for dates
-            date_elems = soup.find(['publication_date', 'date', 'Date', 'Dates'])
-            if date_elems and date_elems.get_text(strip=True):
-                fields['dates'] = date_elems.get_text(strip=True)
+            # Look for creator patterns
+            creator_patterns = [
+                r'creator\s+([^\n]+)',
+                r'Collection by\s+([^\n]+)',
+                r'Papers of\s+([^\n]+)',
+                r'Records of\s+([^\n]+)',
+            ]
             
-            # Look for abstract
-            abstract_elem = soup.find(['abstract', 'Abstract', 'summary', 'Summary', 'description', 'Description'])
-            if abstract_elem and abstract_elem.get_text(strip=True):
-                fields['abstract'] = urllib.parse.unquote(abstract_elem.get_text(strip=True))
+            for pattern in creator_patterns:
+                match = re.search(pattern, content, re.IGNORECASE)
+                if match:
+                    fields['creator'] = match.group(1).strip()
+                    break
             
-            # Method 2: Fallback to table-based extraction (for HTML-like XML)
-            if not any(fields.values()):  # If no fields found above, try table method
-                field_mapping = {
-                    'title': ['Title', 'title'],
-                    'creator': ['Creator', 'creator', 'Author', 'author'],
-                    'dates': ['Dates', 'dates', 'Date', 'date'],
-                    'abstract': ['Abstract', 'abstract', 'Summary', 'summary', 'Description', 'description']
-                }
-                
-                for field_key, field_names in field_mapping.items():
-                    for field_name in field_names:
-                        # Look for table cells with field labels
-                        element = soup.find('td', string=re.compile(fr'{field_name}:', re.IGNORECASE))
-                        if element:
-                            next_td = element.find_next('td')
-                            if next_td and next_td.get_text(strip=True):
-                                text = next_td.get_text(strip=True)
-                                fields[field_key] = urllib.parse.unquote(text)
-                                break  # Found this field, move to next
+            # Look for date patterns
+            date_patterns = [
+                r'(\d{4}-\d{2}-\d{2})',  # YYYY-MM-DD
+                r'(\d{4}-\d{2})',        # YYYY-MM
+                r'(\d{4})',              # YYYY
+                r'publication\s+(\d{4})',
+            ]
+            
+            for pattern in date_patterns:
+                match = re.search(pattern, content)
+                if match:
+                    fields['dates'] = match.group(1).strip()
+                    break
+            
+            # Look for abstract/description patterns
+            abstract_patterns = [
+                r'Overview of the Collection\s+([^.]{50,500})',
+                r'Abstract[^:]*:\s*([^.]{50,500})',
+                r'Description[^:]*:\s*([^.]{50,500})',
+                r'Summary[^:]*:\s*([^.]{50,500})',
+            ]
+            
+            for pattern in abstract_patterns:
+                match = re.search(pattern, content, re.IGNORECASE)
+                if match:
+                    fields['abstract'] = match.group(1).strip()
+                    break
+            
+            # Clean up extracted fields
+            for key in fields:
+                if fields[key]:
+                    fields[key] = urllib.parse.unquote(fields[key])
+                    # Remove extra whitespace and common artifacts
+                    fields[key] = re.sub(r'\s+', ' ', fields[key]).strip()
+                    fields[key] = fields[key][:500]  # Limit length
             
         except Exception as e:
             print(f"Error extracting fields: {e}")
