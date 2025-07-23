@@ -1,29 +1,147 @@
 {% extends "admin/change_list.html" %}
-{% load i18n admin_urls static %}
-
-{% block object-tools-items %}
-    {{ block.super }}
-    <li>
-        <a href="{{ reindex_url }}" class="reindex-btn">
-            🔄 Reindex XML Documents
-        </a>
-    </li>
-{% endblock %}
+{% load i18n admin_urls static admin_list %}
 
 {% block extrahead %}
-    {{ block.super }}
-    <style>
-        .reindex-btn {
-            background: #417690 !important;
-            color: white !important;
-            text-decoration: none !important;
-            padding: 10px 15px !important;
-            border-radius: 4px !important;
-            display: inline-block !important;
-            font-weight: normal !important;
-        }
-        .reindex-btn:hover {
-            background: #205067 !important;
-        }
-    </style>
+{{ block.super }}
+<style>
+    .reindex-button {
+        background: #FFD700 !important;
+        color: #003366 !important;
+        border: 1px solid #FFD700 !important;
+        padding: 8px 16px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+    
+    .reindex-button:hover {
+        background: #e6c200 !important;
+        color: #003366 !important;
+    }
+    
+    .uasc-header {
+        background: linear-gradient(135deg, #003366 0%, #4472C4 100%);
+        color: white;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+    }
+    
+    .uasc-header h2 {
+        margin: 0 0 5px 0;
+        font-size: 1.3em;
+    }
+    
+    .uasc-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 0.9em;
+    }
+    
+    .stats-row {
+        display: flex;
+        gap: 20px;
+        margin: 15px 0;
+        flex-wrap: wrap;
+    }
+    
+    .stat-item {
+        background: #f8f9fa;
+        border: 1px solid #4472C4;
+        border-radius: 6px;
+        padding: 10px 15px;
+        text-align: center;
+        min-width: 120px;
+    }
+    
+    .stat-number {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #003366;
+        display: block;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-size: 0.8em;
+        margin-top: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content_title %}
+<div class="uasc-header">
+    <h2>UASC XML Document Archive</h2>
+    <p>University Archives and Special Collections | Search System Management</p>
+</div>
+
+<div class="stats-row">
+    <div class="stat-item">
+        <span class="stat-number">{{ cl.result_count }}</span>
+        <div class="stat-label">Total Documents</div>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number" id="total-size">0 MB</span>
+        <div class="stat-label">Database Size</div>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number" id="last-update">Today</span>
+        <div class="stat-label">Last Updated</div>
+    </div>
+</div>
+
+<h1>
+    {% if title %}{{ title }}{% else %}XML Documents{% endif %}
+    {% if reindex_url %}
+        <a href="{{ reindex_url }}" class="reindex-button">🔄 Reindex All Documents</a>
+    {% endif %}
+</h1>
+{% endblock %}
+
+{% block result_list %}
+{{ block.super }}
+
+<script>
+// Calculate approximate database size
+let totalSize = 0;
+{% for result in cl.result_list %}
+    {% if result.file_size %}
+        totalSize += {{ result.file_size }};
+    {% endif %}
+{% endfor %}
+
+if (totalSize > 0) {
+    const sizeInMB = (totalSize / (1024 * 1024)).toFixed(1);
+    document.getElementById('total-size').textContent = sizeInMB + ' MB';
+}
+
+// Set last update time based on most recent indexed_at
+const dates = [
+    {% for result in cl.result_list %}
+        {% if result.indexed_at %}
+            new Date('{{ result.indexed_at|date:"c" }}'),
+        {% endif %}
+    {% endfor %}
+];
+
+if (dates.length > 0) {
+    const latestDate = new Date(Math.max.apply(null, dates));
+    const today = new Date();
+    const diffDays = Math.floor((today - latestDate) / (1000 * 60 * 60 * 24));
+    
+    let updateText;
+    if (diffDays === 0) {
+        updateText = 'Today';
+    } else if (diffDays === 1) {
+        updateText = 'Yesterday';
+    } else if (diffDays < 7) {
+        updateText = diffDays + ' days ago';
+    } else {
+        updateText = latestDate.toLocaleDateString();
+    }
+    
+    document.getElementById('last-update').textContent = updateText;
+}
+</script>
 {% endblock %}

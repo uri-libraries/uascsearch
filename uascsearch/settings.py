@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'corsheaders',
     
     # Your app
-    'search_app',
+    'search_app.apps.SearchAppConfig',
 ]
 
 MIDDLEWARE = [

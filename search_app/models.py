@@ -71,4 +71,6 @@ class XMLDocument(models.Model):
 
     class Meta:
         ordering = ['-updated_at']
+        verbose_name = "XML Document"
+        verbose_name_plural = "XML Documents"
 
