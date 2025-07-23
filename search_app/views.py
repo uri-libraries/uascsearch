@@ -18,10 +18,12 @@ def search(request):
             'message': 'Please provide a search query'
         })
 
-    # Search in title and content only
+    # Search in relevant fields only
     results = XMLDocument.objects.filter(
-        Q(content__icontains=query) | 
-        Q(title__icontains=query)
+        Q(title__icontains=query) |
+        Q(creator__icontains=query) |
+        Q(dates__icontains=query) |
+        Q(abstract__icontains=query)
     ).order_by('-updated_at')
 
     # Paginate results

@@ -55,7 +55,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     read -p "❓ Index all files? This will take longer (y/n): " -n 1 -r
     echo ""
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo "🔄 Indexing all XML files..."
+        echo "🔄 Indexing all XML files (storing only relevant fields to save space)..."
         python manage.py index_xml --clear --delay 1.0
     fi
 fi

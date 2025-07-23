@@ -21,6 +21,8 @@ class Command(BaseCommand):
                           help='Delay between requests in seconds (default: 1.0)')
         parser.add_argument('--max-files', type=int, default=None,
                           help='Maximum number of files to process (for testing)')
+        parser.add_argument('--keep-full-content', action='store_true',
+                          help='Keep full XML content in addition to extracted fields (uses more storage)')
 
     def handle(self, *args, **options):
         base_url = options['base_url']
@@ -75,25 +77,27 @@ class Command(BaseCommand):
                     # Extract filename
                     filename = os.path.basename(urlparse(xml_file).path)
                     
+                    # Extract relevant fields from XML content
+                    extracted_fields = self.extract_fields_from_content(content)
+                    
                     # Save to database
                     document, created = XMLDocument.objects.update_or_create(
                         filename=filename,
                         defaults={
-                            'content': content,
+                            'content': content if options['keep_full_content'] else '',  # Optional: keep full content
+                            'title': extracted_fields.get('title', ''),
+                            'creator': extracted_fields.get('creator', ''),
+                            'dates': extracted_fields.get('dates', ''),
+                            'abstract': extracted_fields.get('abstract', ''),
                             'url': xml_file,
                             'file_size': len(response.content),
                             'last_modified': response.headers.get('Last-Modified', ''),
                             'content_type': response.headers.get('Content-Type', ''),
-                            'title': '',  # Will be set below
                         }
                     )
                     
-                    # Extract and save title
-                    document.title = document.extract_title_from_content()
-                    document.save()
-                    
                     indexed_count += 1
-                    self.stdout.write(f'✓ Indexed: {filename} ({len(content)} chars)')
+                    self.stdout.write(f'✓ Indexed: {filename} (Title: {extracted_fields.get("title", "N/A")[:50]}...)')
                     
                     # Add delay to be respectful to the server
                     time.sleep(delay)
@@ -171,4 +175,65 @@ class Command(BaseCommand):
             text_content.append(element.tail.strip())
             
         return ' '.join(filter(None, text_content))
+
+    def extract_fields_from_content(self, content):
+        """Extract specific fields (Creator, Title, Dates, Abstract) from XML content"""
+        from bs4 import BeautifulSoup
+        import urllib.parse
+        
+        fields = {
+            'title': '',
+            'creator': '',
+            'dates': '',
+            'abstract': ''
+        }
+        
+        try:
+            soup = BeautifulSoup(content, 'html.parser')
+            
+            # Method 1: Look for direct XML elements (like <title>, <abstract>, etc.)
+            title_elem = soup.find(['title', 'Title'])
+            if title_elem and title_elem.get_text(strip=True):
+                fields['title'] = urllib.parse.unquote(title_elem.get_text(strip=True))
+            
+            # Look for authors/creators
+            author_elems = soup.find_all(['author', 'Author', 'creator', 'Creator'])
+            if author_elems:
+                authors = [elem.get_text(strip=True) for elem in author_elems if elem.get_text(strip=True)]
+                fields['creator'] = ', '.join(authors)
+            
+            # Look for dates
+            date_elems = soup.find(['publication_date', 'date', 'Date', 'Dates'])
+            if date_elems and date_elems.get_text(strip=True):
+                fields['dates'] = date_elems.get_text(strip=True)
+            
+            # Look for abstract
+            abstract_elem = soup.find(['abstract', 'Abstract', 'summary', 'Summary', 'description', 'Description'])
+            if abstract_elem and abstract_elem.get_text(strip=True):
+                fields['abstract'] = urllib.parse.unquote(abstract_elem.get_text(strip=True))
+            
+            # Method 2: Fallback to table-based extraction (for HTML-like XML)
+            if not any(fields.values()):  # If no fields found above, try table method
+                field_mapping = {
+                    'title': ['Title', 'title'],
+                    'creator': ['Creator', 'creator', 'Author', 'author'],
+                    'dates': ['Dates', 'dates', 'Date', 'date'],
+                    'abstract': ['Abstract', 'abstract', 'Summary', 'summary', 'Description', 'description']
+                }
+                
+                for field_key, field_names in field_mapping.items():
+                    for field_name in field_names:
+                        # Look for table cells with field labels
+                        element = soup.find('td', string=re.compile(fr'{field_name}:', re.IGNORECASE))
+                        if element:
+                            next_td = element.find_next('td')
+                            if next_td and next_td.get_text(strip=True):
+                                text = next_td.get_text(strip=True)
+                                fields[field_key] = urllib.parse.unquote(text)
+                                break  # Found this field, move to next
+            
+        except Exception as e:
+            print(f"Error extracting fields: {e}")
+        
+        return fields
 

@@ -5,8 +5,13 @@ import xml.etree.ElementTree as ET
 
 class XMLDocument(models.Model):
     filename = models.CharField(max_length=255, unique=True)
-    content = models.TextField()
-    title = models.CharField(max_length=500, blank=True)  # Add human-readable title
+    # Store only relevant content fields
+    title = models.CharField(max_length=500, blank=True)
+    creator = models.TextField(blank=True)
+    dates = models.TextField(blank=True)
+    abstract = models.TextField(blank=True)
+    # Keep original content for reference (optional - can be removed to save more space)
+    content = models.TextField(blank=True)  # Make this optional
     url = models.URLField(blank=True, null=True)
     file_size = models.IntegerField(default=0)
     last_modified = models.CharField(max_length=255, blank=True)
@@ -18,67 +23,49 @@ class XMLDocument(models.Model):
         return self.title or self.filename
 
     def get_clean_snippet(self, query='', max_length=200):
-        """Extract a clean snippet from specific XML fields, highlighting search terms"""
-        try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(self.content, 'html.parser')
+        """Extract a clean snippet from the stored relevant fields"""
+        # Combine content from stored fields
+        field_content = []
+        if self.creator.strip():
+            field_content.append(self.creator.strip())
+        if self.title.strip():
+            field_content.append(self.title.strip())
+        if self.dates.strip():
+            field_content.append(self.dates.strip())
+        if self.abstract.strip():
+            field_content.append(self.abstract.strip())
 
-            # Combine content from specific fields
-            fields = ['Creator', 'Title', 'Dates', 'Abstract']
-            field_content = []
-            for field in fields:
-                element = soup.find('td', string=re.compile(fr'{field}:', re.IGNORECASE))
-                if element:
-                    next_td = element.find_next('td')
-                    if next_td and next_td.get_text(strip=True):
-                        field_content.append(next_td.get_text(strip=True))
+        combined_content = ' '.join(field_content)
 
-            combined_content = ' '.join(field_content)
+        # Highlight query in the combined content
+        if query and combined_content:
+            query_lower = query.lower()
+            content_lower = combined_content.lower()
+            pos = content_lower.find(query_lower)
+            if pos != -1:
+                start = max(0, pos - 100)
+                end = min(len(combined_content), pos + len(query) + 100)
+                snippet = combined_content[start:end]
+                if start > 0:
+                    snippet = '...' + snippet
+                if end < len(combined_content):
+                    snippet = snippet + '...'
+                return snippet
 
-            # Highlight query in the combined content
-            if query:
-                query_lower = query.lower()
-                content_lower = combined_content.lower()
-                pos = content_lower.find(query_lower)
-                if pos != -1:
-                    start = max(0, pos - 100)
-                    end = min(len(combined_content), pos + len(query) + 100)
-                    snippet = combined_content[start:end]
-                    if start > 0:
-                        snippet = '...' + snippet
-                    if end < len(combined_content):
-                        snippet = snippet + '...'
-                    return snippet
-
-            # Return the beginning of the combined content if no query
-            snippet = combined_content[:max_length]
-            if len(combined_content) > max_length:
-                snippet += '...'
-            return snippet
-
-        except Exception as e:
-            print(f"Error generating snippet: {e}")
-
-        return ''
+        # Return the beginning of the combined content if no query
+        snippet = combined_content[:max_length]
+        if len(combined_content) > max_length:
+            snippet += '...'
+        return snippet
 
     def extract_title_from_content(self):
-        """Extract a human-readable title from specific XML fields"""
-        try:
-            from bs4 import BeautifulSoup
-            import urllib.parse
-            soup = BeautifulSoup(self.content, 'html.parser')
-
-            # Look for the Title field specifically
-            title_element = soup.find('td', string=re.compile(r'Title:', re.IGNORECASE))
-            if title_element:
-                next_td = title_element.find_next('td')
-                if next_td and next_td.get_text(strip=True):
-                    title = next_td.get_text(strip=True)[:200]  # Limit length
-                    return urllib.parse.unquote(title)  # Decode URL-encoded characters
-
-        except Exception as e:
-            print(f"Error extracting title: {e}")
-
+        """Extract a human-readable title from the stored title field or filename"""
+        import urllib.parse
+        
+        # Use stored title if available
+        if self.title and self.title.strip():
+            return urllib.parse.unquote(self.title.strip()[:200])
+        
         # Fallback to filename without extension
         return urllib.parse.unquote(self.filename.replace('.xml', '').replace('_', ' ').replace('-', ' '))
 

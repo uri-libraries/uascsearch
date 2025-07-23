@@ -1,0 +1,29 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    <li>
+        <a href="{{ reindex_url }}" class="reindex-btn">
+            🔄 Reindex XML Documents
+        </a>
+    </li>
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        .reindex-btn {
+            background: #417690 !important;
+            color: white !important;
+            text-decoration: none !important;
+            padding: 10px 15px !important;
+            border-radius: 4px !important;
+            display: inline-block !important;
+            font-weight: normal !important;
+        }
+        .reindex-btn:hover {
+            background: #205067 !important;
+        }
+    </style>
+{% endblock %}
