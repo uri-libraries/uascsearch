@@ -68,17 +68,18 @@ class Command(BaseCommand):
                         continue
                     
                     content = self.extract_text_content(root)
-                    
+                    raw_xml = response.content.decode(errors='replace')
+
                     # Skip if content is too short (likely empty or invalid)
                     if len(content.strip()) < 50:
                         self.stdout.write(f'⚠ Skipping {xml_file}: Content too short')
                         continue
-                    
+
                     # Extract filename
                     filename = os.path.basename(urlparse(xml_file).path)
-                    
-                    # Extract relevant fields from XML content
-                    extracted_fields = self.extract_fields_from_content(content)
+
+                    # Extract relevant fields from raw XML and text content
+                    extracted_fields = self.extract_fields_from_content(content, raw_xml=raw_xml)
                     
                     # Save to database (only store extracted fields to save space)
                     document, created = XMLDocument.objects.update_or_create(
@@ -176,89 +177,72 @@ class Command(BaseCommand):
             
         return ' '.join(filter(None, text_content))
 
-    def extract_fields_from_content(self, content):
+    def extract_fields_from_content(self, content, raw_xml=None):
         """Extract specific fields from XML content (or text content)"""
         import urllib.parse
         import re
-        
+        from bs4 import BeautifulSoup
+
         fields = {
             'title': '',
             'creator': '',
             'dates': '',
-            'abstract': ''
+            'abstract': '',
+            'subjects': ''
         }
-        
+
         try:
-            # Since the content appears to be extracted text rather than structured XML,
-            # we'll use pattern matching to find relevant information
-            
-            # Look for title patterns
-            title_patterns = [
-                r'Records of ([^0-9\n]+)',  # "Records of Hera Gallery"
-                r'Finding aid[^:]*:\s*([^\n]+)',
-                r'Collection[^:]*:\s*([^\n]+)',
-                r'Papers of ([^0-9\n]+)',
-                r'Guide to ([^0-9\n]+)',
-            ]
-            
-            for pattern in title_patterns:
-                match = re.search(pattern, content, re.IGNORECASE)
-                if match:
-                    fields['title'] = match.group(1).strip()
-                    break
-            
-            # Look for creator patterns
-            creator_patterns = [
-                r'creator\s+([^\n]+)',
-                r'Collection by\s+([^\n]+)',
-                r'Papers of\s+([^\n]+)',
-                r'Records of\s+([^\n]+)',
-            ]
-            
-            for pattern in creator_patterns:
-                match = re.search(pattern, content, re.IGNORECASE)
-                if match:
-                    fields['creator'] = match.group(1).strip()
-                    break
-            
-            # Look for date patterns
-            date_patterns = [
-                r'(\d{4}-\d{2}-\d{2})',  # YYYY-MM-DD
-                r'(\d{4}-\d{2})',        # YYYY-MM
-                r'(\d{4})',              # YYYY
-                r'publication\s+(\d{4})',
-            ]
-            
-            for pattern in date_patterns:
-                match = re.search(pattern, content)
-                if match:
-                    fields['dates'] = match.group(1).strip()
-                    break
-            
-            # Look for abstract/description patterns
-            abstract_patterns = [
-                r'Overview of the Collection\s+([^.]{50,500})',
-                r'Abstract[^:]*:\s*([^.]{50,500})',
-                r'Description[^:]*:\s*([^.]{50,500})',
-                r'Summary[^:]*:\s*([^.]{50,500})',
-            ]
-            
-            for pattern in abstract_patterns:
-                match = re.search(pattern, content, re.IGNORECASE)
-                if match:
-                    fields['abstract'] = match.group(1).strip()
-                    break
-            
+            if raw_xml:
+                # Title
+                m = re.search(r'<titleproper[^>]*encodinganalog=["\']245\$a["\'][^>]*>(.*?)</titleproper>', raw_xml, re.IGNORECASE|re.DOTALL)
+                if m:
+                    fields['title'] = re.sub(r'<.*?>', '', m.group(1)).strip()
+
+                # Abstract
+                m = re.search(r'<abstract[^>]*encodinganalog=["\']520\$a["\'][^>]*>(.*?)</abstract>', raw_xml, re.IGNORECASE|re.DOTALL)
+                if m:
+                    fields['abstract'] = re.sub(r'<.*?>', '', m.group(1)).strip()
+
+                # Creator (persname with encodinganalog="100")
+                m = re.search(r'<persname[^>]*encodinganalog=["\']100["\'][^>]*>(.*?)</persname>', raw_xml, re.IGNORECASE|re.DOTALL)
+                if m:
+                    fields['creator'] = re.sub(r'<.*?>', '', m.group(1)).strip()
+
+                # Subjects (all <subject ...> tags)
+                subjects = re.findall(r'<subject[^>]*>(.*?)</subject>', raw_xml, re.IGNORECASE|re.DOTALL)
+                if subjects:
+                    clean_subjects = [re.sub(r'<.*?>', '', s).strip() for s in subjects]
+                    fields['subjects'] = '; '.join([s for s in clean_subjects if s])
+
+            # Fallbacks for title if not found
+            if not fields['title'] and raw_xml:
+                m = re.search(r'<td[^>]*class=["\"]bold["\"][^>]*>\s*Title:?\s*</td>\s*<td[^>]*>(.*?)</td>', raw_xml, re.IGNORECASE|re.DOTALL)
+                if m:
+                    fields['title'] = re.sub(r'<.*?>', '', m.group(1)).strip()
+
+            if not fields['title']:
+                title_patterns = [
+                    r'Records of ([^0-9\n]+)',
+                    r'Finding aid[^:]*:\s*([^\n]+)',
+                    r'Collection[^:]*:\s*([^\n]+)',
+                    r'Papers of ([^0-9\n]+)',
+                    r'Guide to ([^0-9\n]+)',
+                ]
+                for pattern in title_patterns:
+                    match = re.search(pattern, content, re.IGNORECASE)
+                    if match:
+                        fields['title'] = match.group(1).strip()
+                        break
+
             # Clean up extracted fields
             for key in fields:
                 if fields[key]:
                     fields[key] = urllib.parse.unquote(fields[key])
-                    # Remove extra whitespace and common artifacts
                     fields[key] = re.sub(r'\s+', ' ', fields[key]).strip()
-                    fields[key] = fields[key][:500]  # Limit length
-            
+                    fields[key] = fields[key][:500]
+
         except Exception as e:
             print(f"Error extracting fields: {e}")
-        
+
         return fields
 

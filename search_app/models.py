@@ -12,6 +12,7 @@ class XMLDocument(models.Model):
     abstract = models.TextField(blank=True)
     # Keep original content for reference (optional - can be removed to save more space)
     content = models.TextField(blank=True)  # Make this optional
+    subjects = models.TextField(blank=True)  # Store extracted subject terms
     url = models.URLField(blank=True, null=True)
     file_size = models.IntegerField(default=0)
     last_modified = models.CharField(max_length=255, blank=True)
@@ -24,16 +25,14 @@ class XMLDocument(models.Model):
 
     def get_clean_snippet(self, query='', max_length=200):
         """Extract a clean snippet from the stored relevant fields"""
-        # Combine content from stored fields
+        # Combine content from only abstract, creator, and subjects for snippet
         field_content = []
-        if self.creator.strip():
-            field_content.append(self.creator.strip())
-        if self.title.strip():
-            field_content.append(self.title.strip())
-        if self.dates.strip():
-            field_content.append(self.dates.strip())
         if self.abstract.strip():
             field_content.append(self.abstract.strip())
+        if self.creator.strip():
+            field_content.append(self.creator.strip())
+        if self.subjects.strip():
+            field_content.append(self.subjects.strip())
 
         combined_content = ' '.join(field_content)
 

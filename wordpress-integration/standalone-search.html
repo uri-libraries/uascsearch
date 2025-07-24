@@ -193,7 +193,7 @@
     
     <script>
         // Replace with your actual API URL
-        const API_BASE_URL = 'http://127.0.0.1:8001';
+        const API_BASE_URL = 'http://127.0.0.1:8000';
         
         async function performSearch(event) {
             event.preventDefault();
@@ -216,21 +216,40 @@
         
         function displayResults(data, query) {
             const resultsContainer = document.getElementById('results-container');
-            
-            if (data.count === 0) {
+            // Support both 'count' and 'total'
+            const count = data.count !== undefined ? data.count : data.total;
+            // Support both 'results' and 'items'
+            const results = data.results || data.items;
+
+            if (!results || count === 0) {
                 resultsContainer.innerHTML = `<div class="error">No results found for "${query}"</div>`;
                 return;
             }
-            
+
             let html = `
                 <div class="results-section">
                     <h3>Search Results for "${query}"</h3>
-                    <p>Found ${data.count} result(s)</p>
+                    <p>Found ${count} result(s)</p>
                     <div class="results-list">
             `;
-            
-            data.results.forEach(result => {
-                const title = result.title || decodeURIComponent(result.filename).replace('.xml', '');
+
+            results.forEach(result => {
+                // Clean up the title for display, similar to backend admin
+                let title = result.title || result.filename || '';
+                // URL decode
+                title = decodeURIComponent(title);
+                // Remove .xml extension and underscores
+                title = title.replace(/\.xml$/i, '').replace(/_/g, ' ');
+                // Remove common artifacts (email, onLoad, Website:)
+                title = title.replace(/^mailto:[^\s]+\s*/i, '');
+                title = title.replace(/onLoad/gi, '');
+                title = title.replace(/Website:/gi, '');
+                // Remove leading numbers and extra whitespace
+                title = title.replace(/^\d+-\d+-\d+\s*/, '');
+                title = title.replace(/\s+/g, ' ').trim();
+                // Truncate if too long
+                if (title.length > 80) title = title.substring(0, 77) + '...';
+
                 html += `
                     <div class="result-item">
                         <div class="result-title">
@@ -245,7 +264,7 @@
                     </div>
                 `;
             });
-            
+
             html += '</div></div>';
             resultsContainer.innerHTML = html;
         }

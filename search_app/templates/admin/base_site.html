@@ -1,0 +1,179 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | UASC Admin{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}" style="color: #003366; text-decoration: none;">
+        University Archives and Special Collections
+    </a>
+</h1>
+<div style="font-size: 0.8em; color: #666; margin-top: -5px;">
+    University of Rhode Island | XML Search System
+</div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* URI Brand Colors */
+    :root {
+        --uri-blue: #003366;
+        --uri-light-blue: #4472C4;
+        --uri-gold: #FFD700;
+        --uri-gray: #666666;
+    }
+
+    /* Header styling */
+    #header {
+        background: linear-gradient(135deg, var(--uri-blue) 0%, var(--uri-light-blue) 100%);
+        color: white;
+    }
+
+    #site-name a {
+        color: white !important;
+        font-weight: bold;
+        font-size: 1.2em;
+    }
+
+    #site-name a:hover {
+        color: var(--uri-gold) !important;
+    }
+
+    /* Breadcrumbs */
+    .breadcrumbs {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid var(--uri-blue);
+    }
+
+    .breadcrumbs a {
+        color: var(--uri-blue);
+    }
+
+    .breadcrumbs a:hover {
+        color: var(--uri-light-blue);
+    }
+
+    /* Module headers */
+    .module h2, .module caption, .inline-group h2 {
+        background: var(--uri-blue);
+        color: white;
+    }
+
+    /* Buttons */
+    .button, input[type=submit], input[type=button], .submit-row input, a.button {
+        background: var(--uri-blue) !important;
+        border-color: var(--uri-blue) !important;
+    }
+
+    .button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover, a.button:hover {
+        background: var(--uri-light-blue) !important;
+        border-color: var(--uri-light-blue) !important;
+    }
+
+    .button.default, input[type=submit].default, .submit-row input.default {
+        background: var(--uri-gold) !important;
+        color: var(--uri-blue) !important;
+        border-color: var(--uri-gold) !important;
+    }
+
+    .button.default:hover, input[type=submit].default:hover, .submit-row input.default:hover {
+        background: #e6c200 !important;
+    }
+
+    /* Links */
+    a:link, a:visited {
+        color: var(--uri-blue);
+    }
+
+    a:hover {
+        color: var(--uri-light-blue);
+    }
+
+    /* Table headers */
+    .results th {
+        background: var(--uri-blue);
+        color: white;
+    }
+
+    .results th a:link, .results th a:visited {
+        color: white;
+    }
+
+    /* Form field focus */
+    input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, 
+    input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
+        border-color: var(--uri-light-blue);
+        box-shadow: 0 0 0 2px rgba(68, 114, 196, 0.2);
+    }
+
+    /* Success messages */
+    .messagelist .success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+    }
+
+    /* Custom footer */
+    .footer {
+        text-align: center;
+        margin-top: 40px;
+        padding: 20px;
+        border-top: 2px solid var(--uri-blue);
+        color: var(--uri-gray);
+        font-size: 0.9em;
+    }
+
+    /* Fieldset styling */
+    fieldset.module {
+        border: 1px solid var(--uri-light-blue);
+    }
+
+    fieldset.module h2 {
+        background: var(--uri-light-blue);
+        color: white;
+    }
+
+    /* Action bar */
+    .actions {
+        background-color: #f8f9fa;
+        border: 1px solid var(--uri-light-blue);
+    }
+
+    .actions select {
+        border-color: var(--uri-light-blue);
+    }
+
+    /* Pagination */
+    .paginator a:link, .paginator a:visited {
+        background: var(--uri-blue);
+        color: white;
+        border-color: var(--uri-blue);
+    }
+
+    .paginator a:hover {
+        background: var(--uri-light-blue);
+        border-color: var(--uri-light-blue);
+    }
+
+    .paginator .this-page {
+        background: var(--uri-gold);
+        color: var(--uri-blue);
+        border-color: var(--uri-gold);
+    }
+</style>
+{% endblock %}
+
+{% block footer %}
+<div class="footer">
+    <p>
+        <strong>University Archives and Special Collections (UASC)</strong><br>
+        University of Rhode Island | URI Libraries<br>
+        <a href="https://web.uri.edu/library/special-collections/" target="_blank" style="color: var(--uri-blue);">
+            web.uri.edu/library/special-collections
+        </a>
+    </p>
+</div>
+{% endblock %}
