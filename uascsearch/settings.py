@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-g9^z*(ag!&)v-&5e595i7x9eh)49^$k#ly=vchsvm5aittqk#e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'web.uri.edu', 'webarchives.apps.uri.edu']
+ALLOWED_HOSTS = ['3.144.142.180', 'victorianjewishwritersproject.org', 'webarchives.apps.uri.edu']
 
 
 # Application definition
@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     
     # Third-party apps
     'rest_framework',
@@ -146,3 +147,5 @@ XML_SEARCH_SETTINGS = {
     'MAX_FILE_SIZE': 10 * 1024 * 1024,  # 10MB max file size
     'ALLOWED_EXTENSIONS': ['.xml', '.rdf', '.atom', '.rss'],
 }
+
+X_FRAME_OPTIONS = 'ALLOWALL'

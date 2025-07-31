@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from django.db.models import Q
 from .models import XMLDocument
 from django.core.paginator import Paginator
+from django.shortcuts import render
 import re
 
 @api_view(['GET'])
@@ -69,3 +70,9 @@ def search(request):
 
     return Response(response_data)
 
+def standalone_search(request):
+    """
+    Render the standalone HTML search page for use in an iframe or direct access.
+    Place your standalone-search.html template in the templates directory.
+    """
+    return render(request, "standalone-search.html")
