@@ -1,4 +1,4 @@
-#!/home/bkatzir/uascsearch/venv/bin/python
+#!/Users/ktzr/GitHub/uascsearch/venv/bin/python3.13
 # -*- coding: utf-8 -*-
 import re
 import sys

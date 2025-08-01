@@ -33,7 +33,7 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install django djangorestframework django-cors-headers requests beautifulsoup4
+pip install django djangorestframework django-cors-headers requests beautifulsoup4 django-extensions
 ```
 
 #### Step 2: Configure Django Settings
