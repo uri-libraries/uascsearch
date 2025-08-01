@@ -154,95 +154,215 @@ For sites that only allow basic shortcodes.
 
 ## Production Deployment
 
-### Django Backend Deployment
+### Django Backend Deployment with Apache
 
-#### Option 1: Using a VPS/Server
+#### Prerequisites
+- Amazon Linux 2/2023 or Ubuntu/Debian server
+- Root or sudo access
+- Domain name pointing to your server
 
-1. **Install Python and dependencies**:
+#### Step 1: Install Python and Apache
+
+**For Amazon Linux (using dnf):**
 ```bash
-sudo apt update
-sudo apt install python3 python3-pip python3-venv nginx
+# Update system
+sudo dnf update -y
+
+# Install Python, Apache, and mod_wsgi
+sudo dnf install -y python3 python3-pip python3-devel httpd httpd-devel gcc
+
+# Install mod_wsgi via pip (more reliable than package manager)
+sudo pip3 install mod_wsgi
+
+# Configure mod_wsgi for Apache
+echo "LoadModule wsgi_module $(python3 -m mod_wsgi.server mod_wsgi-express module-config | grep LoadModule | cut -d' ' -f3)" | sudo tee /etc/httpd/conf.modules.d/10-wsgi.conf
 ```
 
-2. **Setup the application**:
+**For Ubuntu/Debian (using apt):**
 ```bash
-# Clone to production directory
-git clone https://github.com/uri-libraries/uascsearch.git /var/www/uascsearch
+# Update system
+sudo apt update
+
+# Install Python, Apache, and mod_wsgi
+sudo apt install -y python3 python3-pip python3-venv apache2 libapache2-mod-wsgi-py3
+```
+
+#### Step 2: Setup the Django Application
+
+```bash
+# Create application directory
+sudo mkdir -p /var/www/uascsearch
 cd /var/www/uascsearch
 
+# Clone the repository
+sudo git clone https://github.com/uri-libraries/uascsearch.git .
+
 # Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+sudo python3 -m venv venv
+
+# Activate virtual environment and install dependencies
+sudo venv/bin/pip install --upgrade pip
+sudo venv/bin/pip install django djangorestframework django-cors-headers requests beautifulsoup4 django-extensions
+
+# Set proper ownership
+sudo chown -R apache:apache /var/www/uascsearch  # Amazon Linux
+# sudo chown -R www-data:www-data /var/www/uascsearch  # Ubuntu/Debian
 ```
 
-3. **Configure for production**:
+#### Step 3: Configure Django for Production
+
+Edit the Django settings:
+```bash
+sudo nano /var/www/uascsearch/uascsearch/settings.py
+```
+
+Update these settings:
 ```python
-# In settings.py
+# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
-ALLOWED_HOSTS = ['your-domain.com', 'web.uri.edu']
 
-# Use a production database (PostgreSQL recommended)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'uascsearch',
-        'USER': 'your_db_user',
-        'PASSWORD': 'your_db_password',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
+# Add your domain to allowed hosts
+ALLOWED_HOSTS = ['your-domain.com', 'www.your-domain.com', 'localhost']
+
+# Static files configuration
+STATIC_URL = '/static/'
+STATIC_ROOT = '/var/www/uascsearch/static/'
+
+# Optional: Use PostgreSQL for production (recommended)
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'uascsearch',
+#         'USER': 'your_db_user',
+#         'PASSWORD': 'your_db_password',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
 ```
 
-4. **Setup static files and run migrations**:
+#### Step 4: Prepare Django Application
+
 ```bash
-python manage.py collectstatic
-python manage.py migrate
+# Collect static files
+sudo /var/www/uascsearch/venv/bin/python /var/www/uascsearch/manage.py collectstatic --noinput
+
+# Run database migrations
+sudo /var/www/uascsearch/venv/bin/python /var/www/uascsearch/manage.py migrate
+
+# Create superuser (optional)
+sudo /var/www/uascsearch/venv/bin/python /var/www/uascsearch/manage.py createsuperuser
+
+# Index XML files
+sudo /var/www/uascsearch/venv/bin/python /var/www/uascsearch/manage.py index_xml --clear --delay 1.0
 ```
 
-5. **Configure Nginx and Gunicorn**:
+#### Step 5: Configure Apache Virtual Host
+
+**For Amazon Linux:**
 ```bash
-# Install Gunicorn
-pip install gunicorn
-
-# Create Gunicorn service file
-sudo nano /etc/systemd/system/uascsearch.service
+sudo nano /etc/httpd/conf.d/uascsearch.conf
 ```
 
-Add this content:
-```ini
-[Unit]
-Description=URI XML Search Django App
-After=network.target
-
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/uascsearch
-Environment="PATH=/var/www/uascsearch/venv/bin"
-ExecStart=/var/www/uascsearch/venv/bin/gunicorn --workers 3 --bind unix:/var/www/uascsearch/uascsearch.sock uascsearch.wsgi:application
-
-[Install]
-WantedBy=multi-user.target
+**For Ubuntu/Debian:**
+```bash
+sudo nano /etc/apache2/sites-available/uascsearch.conf
 ```
 
-6. **Configure Nginx**:
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
+Add this configuration:
+```apache
+<VirtualHost *:80>
+    ServerName your-domain.com
+    ServerAlias www.your-domain.com
+    DocumentRoot /var/www/uascsearch
     
-    location / {
-        proxy_pass http://unix:/var/www/uascsearch/uascsearch.sock;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
+    # WSGI Configuration
+    WSGIDaemonProcess uascsearch python-path=/var/www/uascsearch python-home=/var/www/uascsearch/venv
+    WSGIProcessGroup uascsearch
+    WSGIScriptAlias / /var/www/uascsearch/uascsearch/wsgi.py
     
-    location /static/ {
-        root /var/www/uascsearch;
-    }
-}
+    # Django application directory
+    <Directory /var/www/uascsearch/uascsearch>
+        <Files wsgi.py>
+            Require all granted
+        </Files>
+    </Directory>
+    
+    # Static files
+    Alias /static /var/www/uascsearch/static
+    <Directory /var/www/uascsearch/static>
+        Require all granted
+    </Directory>
+    
+    # Logging
+    ErrorLog /var/log/httpd/uascsearch_error.log
+    CustomLog /var/log/httpd/uascsearch_access.log combined
+    
+    # Security headers
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+</VirtualHost>
+```
+
+#### Step 6: Enable Site and Start Apache
+
+**For Amazon Linux:**
+```bash
+# Start and enable Apache
+sudo systemctl start httpd
+sudo systemctl enable httpd
+
+# Test configuration
+sudo httpd -t
+```
+
+**For Ubuntu/Debian:**
+```bash
+# Enable the site and required modules
+sudo a2ensite uascsearch.conf
+sudo a2enmod wsgi
+sudo a2enmod headers
+
+# Disable default site
+sudo a2dissite 000-default.conf
+
+# Test configuration and restart
+sudo apache2ctl configtest
+sudo systemctl restart apache2
+sudo systemctl enable apache2
+```
+
+#### Step 7: Configure Firewall
+
+**For Amazon Linux (using firewalld):**
+```bash
+sudo systemctl start firewalld
+sudo systemctl enable firewalld
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --reload
+```
+
+**For Ubuntu/Debian (using ufw):**
+```bash
+sudo ufw allow 'Apache Full'
+sudo ufw enable
+```
+
+#### Step 8: SSL Certificate (Recommended)
+
+Install SSL certificate using Let's Encrypt:
+```bash
+# Install Certbot
+sudo dnf install -y certbot python3-certbot-apache  # Amazon Linux
+# sudo apt install -y certbot python3-certbot-apache  # Ubuntu/Debian
+
+# Obtain SSL certificate
+sudo certbot --apache -d your-domain.com -d www.your-domain.com
+
+# Test automatic renewal
+sudo certbot renew --dry-run
 ```
 
 #### Option 2: Using Docker
@@ -360,23 +480,35 @@ python manage.py clearsessions
 #### Common Issues
 
 1. **Search returns no results**
-   - Check Django server is running: `curl http://your-api.com/search/?q=test`
-   - Verify XML files are indexed: Check admin interface
+   - Check Django server is running: `curl http://your-domain.com/search/?q=test`
+   - Verify XML files are indexed: Check admin interface at `/admin/`
    - Ensure CORS is configured for your WordPress domain
 
 2. **WordPress shows 404 on results page**
    - Go to WordPress Admin → Settings → Permalinks
    - Click "Save Changes" to flush rewrite rules
 
-3. **API connection errors**
-   - Check Django `ALLOWED_HOSTS` setting
-   - Verify firewall allows connections on port 8000
-   - Check CORS configuration
+3. **Apache/Django connection errors**
+   - Check Django `ALLOWED_HOSTS` setting includes your domain
+   - Verify Apache configuration: `sudo httpd -t` (Amazon Linux) or `sudo apache2ctl configtest` (Ubuntu)
+   - Check Apache error logs: `sudo tail -f /var/log/httpd/uascsearch_error.log`
 
-4. **Slow search performance**
-   - Consider adding database indexes
-   - Implement caching (Redis/Memcached)
-   - Optimize XML content extraction
+4. **Permission errors**
+   - Ensure proper ownership: `sudo chown -R apache:apache /var/www/uascsearch` (Amazon Linux)
+   - Check SELinux contexts: `sudo setsebool -P httpd_can_network_connect 1` (Amazon Linux)
+
+5. **mod_wsgi not working**
+   - Verify mod_wsgi is loaded: `httpd -M | grep wsgi` (Amazon Linux)
+   - Check Python path in virtual host configuration
+   - Restart Apache: `sudo systemctl restart httpd`
+
+6. **Static files not serving**
+   - Run `collectstatic` again: `sudo /var/www/uascsearch/venv/bin/python /var/www/uascsearch/manage.py collectstatic`
+   - Check Apache alias configuration for `/static/`
+
+7. **SSL/HTTPS issues**
+   - Renew certificates: `sudo certbot renew`
+   - Check certificate status: `sudo certbot certificates`
 
 #### Debug Mode
 

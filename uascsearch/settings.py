@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-g9^z*(ag!&)v-&5e595i7x9eh)49^$k#ly=vchsvm5aittqk#e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['3.144.142.180', 'victorianjewishwritersproject.org', 'webarchives.apps.uri.edu']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'webarchives.apps.uri.edu']
 
 
 # Application definition
