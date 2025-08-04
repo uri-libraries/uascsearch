@@ -37,14 +37,6 @@ fi
 echo "Updating system packages..."
 $PACKAGE_MANAGER update -y --skip-broken
 
-# Install EPEL repository for additional packages
-echo "Installing EPEL repository..."
-if [ "$PACKAGE_MANAGER" = "yum" ]; then
-    amazon-linux-extras install epel -y
-else
-    $PACKAGE_MANAGER install -y epel-release
-fi
-
 # Install required packages
 echo "Installing required packages..."
 if [ "$PACKAGE_MANAGER" = "yum" ]; then
