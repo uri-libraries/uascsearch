@@ -54,8 +54,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Installing mod_wsgi via pip..."
         pip3 install mod_wsgi
         echo "Configuring mod_wsgi for Apache..."
-        MOD_WSGI_PATH=$(python3 -c "import mod_wsgi; print(mod_wsgi.server_config_file())")
-        echo "Include $MOD_WSGI_PATH" > /etc/httpd/conf.modules.d/10-wsgi.conf
+        mod_wsgi-express install-module > /etc/httpd/conf.modules.d/10-wsgi.conf
     fi
     systemctl enable httpd
     echo "Apache installed and enabled"

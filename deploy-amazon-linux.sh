@@ -50,8 +50,7 @@ else
     echo "Installing mod_wsgi via pip..."
     pip3 install mod_wsgi
     echo "Configuring mod_wsgi for Apache..."
-    MOD_WSGI_CONFIG=$(mod_wsgi-express module-config)
-    echo "$MOD_WSGI_CONFIG" > /etc/httpd/conf.modules.d/10-wsgi.conf
+    mod_wsgi-express install-module > /etc/httpd/conf.modules.d/10-wsgi.conf
 fi
 
 # Install mod_wsgi if not available via package manager (fallback for Amazon Linux 2)
@@ -60,8 +59,7 @@ if ! httpd -M 2>/dev/null | grep -q wsgi_module; then
     pip3 install mod_wsgi
     
     # Get mod_wsgi configuration
-    MOD_WSGI_CONFIG=$(mod_wsgi-express module-config)
-    echo "$MOD_WSGI_CONFIG" > /etc/httpd/conf.modules.d/10-wsgi.conf
+    mod_wsgi-express install-module > /etc/httpd/conf.modules.d/10-wsgi.conf
 fi
 
 # Enable and start Apache
