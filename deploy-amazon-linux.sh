@@ -26,9 +26,16 @@ else
     exit 1
 fi
 
+# Handle Node.js package conflicts first
+echo "Checking for Node.js package conflicts..."
+if $PACKAGE_MANAGER list installed | grep -q nodejs; then
+    echo "Removing conflicting Node.js packages..."
+    $PACKAGE_MANAGER remove -y nodejs nodejs-npm nodejs-full-i18n 2>/dev/null || true
+fi
+
 # Update system
 echo "Updating system packages..."
-$PACKAGE_MANAGER update -y
+$PACKAGE_MANAGER update -y --skip-broken
 
 # Install EPEL repository for additional packages
 echo "Installing EPEL repository..."
@@ -68,6 +75,10 @@ systemctl start httpd
 # Create directory
 echo "Creating application directory..."
 mkdir -p /var/www/uascsearch
+
+# Get the directory where this script is located (should be the repo root)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 cd /var/www/uascsearch
 
 # Clone or update repository
@@ -76,8 +87,15 @@ if [ -d ".git" ]; then
     echo "Updating existing repository..."
     git pull
 else
-    echo "Cloning repository..."
-    git clone https://github.com/uri-libraries/uascsearch.git .
+    echo "Copying repository from deployment source..."
+    cp -r "$SCRIPT_DIR"/* .
+    cp -r "$SCRIPT_DIR"/.[^.]* . 2>/dev/null || true
+    # Initialize git if copying from a git repo
+    if [ -d "$SCRIPT_DIR/.git" ]; then
+        git init
+        git add .
+        git commit -m "Initial production deployment from local repository"
+    fi
 fi
 
 # Create virtual environment

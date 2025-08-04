@@ -27,9 +27,16 @@ else
     exit 1
 fi
 
+# Handle Node.js package conflicts first
+echo "Checking for Node.js package conflicts..."
+if $PACKAGE_MANAGER list installed | grep -q nodejs; then
+    echo "Removing conflicting Node.js packages..."
+    $PACKAGE_MANAGER remove -y nodejs nodejs-npm nodejs-full-i18n 2>/dev/null || true
+fi
+
 # Update system
 echo "Updating system packages..."
-$PACKAGE_MANAGER update -y
+$PACKAGE_MANAGER update -y --skip-broken
 
 # Install EPEL repository
 echo "Installing EPEL repository..."
@@ -52,12 +59,16 @@ fi
 CURRENT_USER=${SUDO_USER:-$USER}
 CURRENT_HOME=$(eval echo ~$CURRENT_USER)
 
+# Get the directory where this script is located (should be the repo root)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 # Set up development directory
 DEV_DIR="$CURRENT_HOME/uascsearch-dev"
 echo "Setting up development directory at $DEV_DIR..."
 
 # Create development directory
 mkdir -p "$DEV_DIR"
+chown -R $CURRENT_USER:$CURRENT_USER "$DEV_DIR"
 cd "$DEV_DIR"
 
 # Clone or update repository
@@ -66,8 +77,15 @@ if [ -d ".git" ]; then
     echo "Updating existing repository..."
     sudo -u $CURRENT_USER git pull
 else
-    echo "Cloning repository..."
-    sudo -u $CURRENT_USER git clone https://github.com/uri-libraries/uascsearch.git .
+    echo "Copying repository from current location..."
+    sudo -u $CURRENT_USER cp -r "$SCRIPT_DIR"/* .
+    sudo -u $CURRENT_USER cp -r "$SCRIPT_DIR"/.[^.]* . 2>/dev/null || true
+    # Initialize git if copying from a git repo
+    if [ -d "$SCRIPT_DIR/.git" ]; then
+        sudo -u $CURRENT_USER git init
+        sudo -u $CURRENT_USER git add .
+        sudo -u $CURRENT_USER git commit -m "Initial development setup from local repository"
+    fi
 fi
 
 # Create virtual environment
