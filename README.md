@@ -1,607 +1,242 @@
 # URI XML Search System
 
-A complete search solution for URI Special Collections XML archives, consisting of a Django backend API and WordPress frontend integration.
+A Django REST API backend with WordPress frontend integration for searching URI Special Collections XML archives.
 
 ## Overview
 
-This system allows users to search through hundreds of XML files from the URI web archives (`https://webarchives.apps.uri.edu/xml/`) via a user-friendly WordPress interface. The search results display formatted excerpts with direct links to the original XML files.
+This system indexes and searches hundreds of XML files from the URI web archives (`https://webarchives.apps.uri.edu/xml/`) through a user-friendly WordPress interface.
 
-## Architecture
-
-- **Backend**: Django REST API that indexes and searches XML files
-- **Frontend**: WordPress plugin that provides search interface
+**Architecture:**
+- **Backend**: Django REST API with XML indexing
+- **Frontend**: WordPress plugin with search interface  
 - **Data Source**: URI web archives XML collection
 
-## Installation
+## Quick Start
 
-### Part 1: Django Backend Setup
+### Automated Installation (Recommended)
 
-#### Prerequisites
-- Python 3.8+
-- Virtual environment (recommended)
-- Git
-
-#### Step 1: Clone and Setup the Django Project
-
+**Production (Amazon Linux/EC2):**
 ```bash
-# Clone the repository
 git clone https://github.com/uri-libraries/uascsearch.git
 cd uascsearch
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install django djangorestframework django-cors-headers requests beautifulsoup4 django-extensions
+sudo ./deploy-amazon-linux.sh
 ```
 
-#### Step 2: Configure Django Settings
-
-Edit `uascsearch/settings.py` and update the `ALLOWED_HOSTS` for your deployment:
-
-```python
-# For production, add your domain
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'your-domain.com']
-
-# Update CORS settings for your WordPress site
-CORS_ALLOWED_ORIGINS = [
-    "https://web.uri.edu",
-    "https://your-wordpress-site.com",
-]
+**Development (AlmaLinux/RHEL-based):**
+```bash
+git clone https://github.com/uri-libraries/uascsearch.git
+cd uascsearch
+sudo ./deploy-dev.sh
 ```
 
-#### Step 3: Database Setup
+The automated scripts handle:
+- Package installation (Apache, Python, mod_wsgi)
+- Virtual environment setup
+- Database migrations
+- Static file collection
+- SSL-ready configuration (production)
+- Development server setup (development)
+- XML indexing
+
+### Manual Installation
+
+See [MANUAL_SETUP.md](MANUAL_SETUP.md) for detailed manual installation steps.
+
+## WordPress Integration
+
+Three integration options available in the `wordpress-integration/` directory:
+
+1. **JavaScript Plugin** (`uri-xml-search.php`) - Full-featured for unrestricted sites
+2. **PHP-only Plugin** (`uri-xml-search-nojs.php`) - For sites that block JavaScript  
+3. **Iframe Integration** (`standalone-search.html`) - Embed search page in iframe
+
+**Quick Setup:**
+1. Choose appropriate plugin from `wordpress-integration/`
+2. Upload to `/wp-content/plugins/` and activate
+3. Add shortcode: `[uri_xml_search]`
+4. Configure API URL in plugin settings
+
+## Configuration
+
+### Environment Variables
+
+Copy `.env.template` to `.env` and configure:
 
 ```bash
-# Create database migrations
-python manage.py makemigrations search_app
-python manage.py migrate
-
-# Create superuser (optional, for admin access)
-python manage.py createsuperuser
+SECRET_KEY=your-secret-key-here
+DEBUG=False
+ALLOWED_HOSTS=your-domain.com,your-ip
+CORS_ALLOWED_ORIGINS=https://your-wordpress-site.com
 ```
 
-#### Step 4: Index XML Files
+### SSL Setup (Let's Encrypt)
 
 ```bash
-# Test with a few files first
-python manage.py index_xml --max-files 5 --delay 2.0 --clear
+# Install certbot
+sudo dnf install certbot python3-certbot-apache
 
-# Index all files (this may take a while - 283+ files)
-python manage.py index_xml --clear --delay 1.0
-```
+# Get certificate
+sudo certbot --apache -d your-domain.com
 
-#### Step 5: Start the Development Server
-
-```bash
-python manage.py runserver
-```
-
-The API will be available at `http://127.0.0.1:8000/search/`
-
-#### Step 6: Test the API
-
-```bash
-# Test search functionality
-curl "http://127.0.0.1:8000/search/?q=history"
-```
-
-### Part 2: WordPress Frontend Setup
-
-#### Prerequisites
-- WordPress site with admin access
-- FTP/SFTP access or file manager
-
-**Choose the appropriate WordPress integration based on your site's restrictions:**
-
-#### Option A: Full JavaScript Plugin (Recommended)
-For sites that allow JavaScript and custom plugins.
-
-1. Create a new directory: `/wp-content/plugins/uri-xml-search/`
-2. Upload these files from the `wordpress-integration/` folder:
-   - `uri-xml-search.php`
-   - `uri-xml-search.js`
-   - `uri-xml-search.css`
-   - `search-results-template.php`
-
-#### Option B: PHP-Only Plugin (Locked-Down Sites)
-For sites that restrict JavaScript but allow PHP plugins.
-
-1. Create a new directory: `/wp-content/plugins/uri-xml-search-nojs/`
-2. Upload these files from the `wordpress-integration/` folder:
-   - `uri-xml-search-nojs.php`
-   - `uri-xml-search-nojs.css`
-
-#### Option C: Simple Link Plugin (Highly Restricted)
-For sites that only allow basic shortcodes.
-
-1. Create a new directory: `/wp-content/plugins/xml-search-link/`
-2. Upload this file from the `wordpress-integration/` folder:
-   - `xml-search-link.php`
-3. Host the `standalone-search.html` file on your server
-
-**For detailed WordPress installation instructions, see [`wordpress-integration/README.md`](wordpress-integration/README.md)**
-
-#### General WordPress Setup Steps
-
-1. Go to WordPress Admin → Plugins
-2. Find "URI XML Search" and click "Activate"
-
-#### Step 3: Configure the Plugin
-
-1. Go to WordPress Admin → Settings → URI XML Search
-2. Set the API Base URL:
-   - For development: `http://127.0.0.1:8000`
-   - For production: `https://your-django-domain.com`
-3. Click "Save Changes"
-
-#### Step 4: Add Search Box to Your Page
-
-1. Edit the page where you want the search box (e.g., manuscripts list page)
-2. Add this shortcode where you want the search box to appear:
-
-```shortcode
-[uri_xml_search placeholder="Search manuscripts and archives..." button_text="Search Archives"]
-```
-
-#### Step 5: Test the Integration
-
-1. Visit the page with the search box
-2. Enter a search term (e.g., "history", "college", "manuscripts")
-3. Click "Search Archives"
-4. You should be redirected to `/xml-search-results/` with formatted results
-
-## Production Deployment
-
-### Django Backend Deployment with Apache
-
-#### Prerequisites
-- Amazon Linux 2/2023 or Ubuntu/Debian server
-- Root or sudo access
-- Domain name pointing to your server
-
-#### Step 1: Install Python and Apache
-
-**For Amazon Linux (using dnf):**
-```bash
-# Update system
-sudo dnf update -y
-
-# Install Python, Apache, and mod_wsgi
-sudo dnf install -y python3 python3-pip python3-devel httpd httpd-devel gcc
-
-# Install mod_wsgi via pip (more reliable than package manager)
-sudo pip3 install mod_wsgi
-
-# Configure mod_wsgi for Apache
-echo "LoadModule wsgi_module $(python3 -m mod_wsgi.server mod_wsgi-express module-config | grep LoadModule | cut -d' ' -f3)" | sudo tee /etc/httpd/conf.modules.d/10-wsgi.conf
-```
-
-**For Ubuntu/Debian (using apt):**
-```bash
-# Update system
-sudo apt update
-
-# Install Python, Apache, and mod_wsgi
-sudo apt install -y python3 python3-pip python3-venv apache2 libapache2-mod-wsgi-py3
-```
-
-#### Step 2: Setup the Django Application
-
-```bash
-# Create application directory
-sudo mkdir -p /var/www/uascsearch
-cd /var/www/uascsearch
-
-# Clone the repository
-sudo git clone https://github.com/uri-libraries/uascsearch.git .
-
-# Create virtual environment
-sudo python3 -m venv venv
-
-# Activate virtual environment and install dependencies
-sudo venv/bin/pip install --upgrade pip
-sudo venv/bin/pip install django djangorestframework django-cors-headers requests beautifulsoup4 django-extensions
-
-# Set proper ownership
-sudo chown -R apache:apache /var/www/uascsearch  # Amazon Linux
-# sudo chown -R www-data:www-data /var/www/uascsearch  # Ubuntu/Debian
-```
-
-#### Step 3: Configure Django for Production
-
-Edit the Django settings:
-```bash
-sudo nano /var/www/uascsearch/uascsearch/settings.py
-```
-
-Update these settings:
-```python
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-
-# Add your domain to allowed hosts
-ALLOWED_HOSTS = ['your-domain.com', 'www.your-domain.com', 'localhost']
-
-# Static files configuration
-STATIC_URL = '/static/'
-STATIC_ROOT = '/var/www/uascsearch/static/'
-
-# Optional: Use PostgreSQL for production (recommended)
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'uascsearch',
-#         'USER': 'your_db_user',
-#         'PASSWORD': 'your_db_password',
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#     }
-# }
-```
-
-#### Step 4: Prepare Django Application
-
-```bash
-# Collect static files
-sudo /var/www/uascsearch/venv/bin/python /var/www/uascsearch/manage.py collectstatic --noinput
-
-# Run database migrations
-sudo /var/www/uascsearch/venv/bin/python /var/www/uascsearch/manage.py migrate
-
-# Create superuser (optional)
-sudo /var/www/uascsearch/venv/bin/python /var/www/uascsearch/manage.py createsuperuser
-
-# Index XML files
-sudo /var/www/uascsearch/venv/bin/python /var/www/uascsearch/manage.py index_xml --clear --delay 1.0
-```
-
-#### Step 5: Configure Apache Virtual Host
-
-**For Amazon Linux:**
-```bash
-sudo nano /etc/httpd/conf.d/uascsearch.conf
-```
-
-**For Ubuntu/Debian:**
-```bash
-sudo nano /etc/apache2/sites-available/uascsearch.conf
-```
-
-Add this configuration:
-```apache
-<VirtualHost *:80>
-    ServerName your-domain.com
-    ServerAlias www.your-domain.com
-    DocumentRoot /var/www/uascsearch
-    
-    # WSGI Configuration
-    WSGIDaemonProcess uascsearch python-path=/var/www/uascsearch python-home=/var/www/uascsearch/venv
-    WSGIProcessGroup uascsearch
-    WSGIScriptAlias / /var/www/uascsearch/uascsearch/wsgi.py
-    
-    # Django application directory
-    <Directory /var/www/uascsearch/uascsearch>
-        <Files wsgi.py>
-            Require all granted
-        </Files>
-    </Directory>
-    
-    # Static files
-    Alias /static /var/www/uascsearch/static
-    <Directory /var/www/uascsearch/static>
-        Require all granted
-    </Directory>
-    
-    # Logging
-    ErrorLog /var/log/httpd/uascsearch_error.log
-    CustomLog /var/log/httpd/uascsearch_access.log combined
-    
-    # Security headers
-    Header always set X-Content-Type-Options nosniff
-    Header always set X-Frame-Options DENY
-    Header always set X-XSS-Protection "1; mode=block"
-</VirtualHost>
-```
-
-#### Step 6: Enable Site and Start Apache
-
-**For Amazon Linux:**
-```bash
-# Start and enable Apache
-sudo systemctl start httpd
-sudo systemctl enable httpd
-
-# Test configuration
-sudo httpd -t
-```
-
-**For Ubuntu/Debian:**
-```bash
-# Enable the site and required modules
-sudo a2ensite uascsearch.conf
-sudo a2enmod wsgi
-sudo a2enmod headers
-
-# Disable default site
-sudo a2dissite 000-default.conf
-
-# Test configuration and restart
-sudo apache2ctl configtest
-sudo systemctl restart apache2
-sudo systemctl enable apache2
-```
-
-#### Step 7: Configure Firewall
-
-**For Amazon Linux (using firewalld):**
-```bash
-sudo systemctl start firewalld
-sudo systemctl enable firewalld
-sudo firewall-cmd --permanent --add-service=http
-sudo firewall-cmd --permanent --add-service=https
-sudo firewall-cmd --reload
-```
-
-**For Ubuntu/Debian (using ufw):**
-```bash
-sudo ufw allow 'Apache Full'
-sudo ufw enable
-```
-
-#### Step 8: SSL Certificate (Recommended)
-
-Install SSL certificate using Let's Encrypt:
-```bash
-# Install Certbot
-sudo dnf install -y certbot python3-certbot-apache  # Amazon Linux
-# sudo apt install -y certbot python3-certbot-apache  # Ubuntu/Debian
-
-# Obtain SSL certificate
-sudo certbot --apache -d your-domain.com -d www.your-domain.com
-
-# Test automatic renewal
+# Auto-renewal test
 sudo certbot renew --dry-run
 ```
 
-#### Option 2: Using Docker
-
-1. **Create Dockerfile**:
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-
-EXPOSE 8000
-
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-```
-
-2. **Create docker-compose.yml**:
-```yaml
-version: '3.8'
-
-services:
-  web:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - DEBUG=False
-    depends_on:
-      - db
-      
-  db:
-    image: postgres:13
-    environment:
-      POSTGRES_DB: uascsearch
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
-```
-
-3. **Deploy**:
-```bash
-docker-compose up -d
-```
-
-### WordPress Production Configuration
-
-1. **Update API URL**: Change the API URL in WordPress settings to your production Django URL
-2. **Enable HTTPS**: Ensure both WordPress and Django are served over HTTPS
-3. **Test thoroughly**: Verify search functionality works across different devices and browsers
-
 ## Usage
 
-### Search Interface
+### Management Commands
 
-Users can search the XML archives using the search box on your WordPress page. The search will:
+```bash
+# Index XML files
+python manage.py index_xml --clear --delay 1.0
 
-1. Query the Django API for matching documents
-2. Display results with:
-   - Document filename (linked to original XML)
-   - Content snippet
-   - File size and modification date
-   - Pagination for large result sets
+# Create superuser
+python manage.py createsuperuser
 
-### Search Features
-
-- **Full-text search**: Searches within XML content
-- **Filename search**: Also searches document filenames
-- **Pagination**: Handles large result sets efficiently
-- **Responsive design**: Works on all devices
-- **Direct links**: Results link to original XML files
+# Collect static files
+python manage.py collectstatic
+```
 
 ### API Endpoints
 
-- `GET /search/?q=query&page=1&per_page=10` - Search XML documents
-- `GET /admin/` - Django admin interface (requires authentication)
+- `GET /search/?q=query` - Search XML documents
+- `GET /standalone-search/` - Standalone search page (for iframe)
+- `GET /admin/` - Django admin interface
 
-## Maintenance
+## File Structure
 
-### Regular Tasks
+```
+uascsearch/
+├── .env.template                 # Environment variables template
+├── .gitignore                   # Git ignore patterns
+├── deploy-amazon-linux.sh       # Production deployment script
+├── deploy-dev.sh                # Development deployment script
+├── manage.py                    # Django management script
+├── requirements.txt             # Python dependencies
+├── README.md                    # This file
+├── MANUAL_SETUP.md             # Detailed manual installation guide
+├── search_app/                 # Django app
+│   ├── models.py               # XMLDocument model
+│   ├── views.py                # API views
+│   ├── management/commands/    # index_xml command
+│   └── templates/              # HTML templates
+├── config/                     # Django project settings
+│   ├── settings.py             # Django configuration
+│   ├── urls.py                 # URL routing
+│   └── wsgi.py                 # WSGI application
+├── wordpress-integration/      # WordPress plugins
+└── sample_xml/                 # Sample XML files
+```
 
-#### Re-index XML Files
+## Troubleshooting
+
+### Common Issues
+
+**Search returns no results:**
 ```bash
-# Update the index periodically to catch new files
-python manage.py index_xml --clear --delay 1.0
+# Check if files are indexed
+python manage.py shell -c "from search_app.models import XMLDocument; print(XMLDocument.objects.count())"
+
+# Re-index if needed
+python manage.py index_xml --clear
 ```
 
-#### Monitor Performance
+**Apache/WSGI errors:**
 ```bash
-# Check Django logs
-tail -f /var/log/django/debug.log
+# Check Apache syntax
+sudo httpd -t
 
-# Monitor API response times
-curl -w "@curl-format.txt" "http://your-api.com/search/?q=test"
+# View error logs
+sudo tail -f /var/log/httpd/error.log
 ```
 
-#### Database Maintenance
+**Permission errors:**
 ```bash
-# Backup database
-python manage.py dumpdata > backup.json
+# Fix ownership
+sudo chown -R apache:apache /var/www/uascsearch
 
-# Clean up old search logs if implemented
-python manage.py clearsessions
+# SELinux
+sudo setsebool -P httpd_can_network_connect 1
+sudo restorecon -Rv /var/www/uascsearch
 ```
 
-### Troubleshooting
+**WordPress iframe blank:**
+- Ensure both sites use same protocol (HTTP/HTTPS)
+- Check X-Frame-Options setting in Django
+- Verify CORS configuration
 
-#### Common Issues
+### Logs
 
-1. **Search returns no results**
-   - Check Django server is running: `curl http://your-domain.com/search/?q=test`
-   - Verify XML files are indexed: Check admin interface at `/admin/`
-   - Ensure CORS is configured for your WordPress domain
+- **Django**: Check Apache error logs
+- **WordPress**: Enable WP_DEBUG in wp-config.php
+- **API**: Test directly with curl: `curl "http://your-site.com/search/?q=test"`
 
-2. **WordPress shows 404 on results page**
-   - Go to WordPress Admin → Settings → Permalinks
-   - Click "Save Changes" to flush rewrite rules
+## Development
 
-3. **Apache/Django connection errors**
-   - Check Django `ALLOWED_HOSTS` setting includes your domain
-   - Verify Apache configuration: `sudo httpd -t` (Amazon Linux) or `sudo apache2ctl configtest` (Ubuntu)
-   - Check Apache error logs: `sudo tail -f /var/log/httpd/uascsearch_error.log`
+### Local Development
 
-4. **Permission errors**
-   - Ensure proper ownership: `sudo chown -R apache:apache /var/www/uascsearch` (Amazon Linux)
-   - Check SELinux contexts: `sudo setsebool -P httpd_can_network_connect 1` (Amazon Linux)
-
-5. **mod_wsgi not working**
-   - Verify mod_wsgi is loaded: `httpd -M | grep wsgi` (Amazon Linux)
-   - Check Python path in virtual host configuration
-   - Restart Apache: `sudo systemctl restart httpd`
-
-6. **Static files not serving**
-   - Run `collectstatic` again: `sudo /var/www/uascsearch/venv/bin/python /var/www/uascsearch/manage.py collectstatic`
-   - Check Apache alias configuration for `/static/`
-
-7. **SSL/HTTPS issues**
-   - Renew certificates: `sudo certbot renew`
-   - Check certificate status: `sudo certbot certificates`
-
-#### Debug Mode
-
-Enable debug mode in WordPress:
-```php
-// In wp-config.php
-define('WP_DEBUG', true);
-define('WP_DEBUG_LOG', true);
+**Quick Setup (AlmaLinux/RHEL):**
+```bash
+sudo ./deploy-dev.sh
+cd ~/uascsearch-dev
+./start-dev.sh
 ```
 
-Check logs in `/wp-content/debug.log`
+**Manual Setup:**
+```bash
+# Clone and setup
+git clone https://github.com/uri-libraries/uascsearch.git
+cd uascsearch
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-## Security Considerations
+# Setup database
+python manage.py migrate
+python manage.py createsuperuser
 
-### Production Security
+# Index some test files
+python manage.py index_xml --max-files 5
 
-1. **Django Security**:
-   - Set `DEBUG = False`
-   - Use strong `SECRET_KEY`
-   - Implement rate limiting
-   - Use HTTPS only
-   - Regular security updates
+# Run development server
+python manage.py runserver 0.0.0.0:8000
 
-2. **WordPress Security**:
-   - Keep WordPress and plugins updated
-   - Use strong admin passwords
-   - Implement security headers
-   - Regular backups
+# For HTTPS testing
+pip install django-extensions Werkzeug pyOpenSSL
+python manage.py runserver_plus --cert-file cert.pem --key-file key.pem 0.0.0.0:8000
+```
 
-3. **Server Security**:
-   - Configure firewall
-   - Use SSL certificates
-   - Regular system updates
-   - Monitor access logs
+### Adding Features
 
-## Performance Optimization
+1. **New search fields**: Modify `search_app/models.py` and `views.py`
+2. **WordPress customization**: Edit files in `wordpress-integration/`
+3. **Styling changes**: Update templates in `search_app/templates/`
 
-### Django Optimization
+## Production Deployment
 
-1. **Database Optimization**:
-   - Add indexes on frequently searched fields
-   - Use database connection pooling
-   - Consider read replicas for heavy loads
+### Security Checklist
 
-2. **Caching**:
-   - Implement Redis/Memcached for search results
-   - Use Django's cache framework
-   - Cache static files with CDN
+- [ ] `DEBUG = False` in production
+- [ ] Strong `SECRET_KEY` (use environment variable)
+- [ ] HTTPS enabled with valid SSL certificate
+- [ ] Firewall configured (ports 80, 443)
+- [ ] Regular backups of database
+- [ ] Keep Django and dependencies updated
 
-3. **API Optimization**:
-   - Implement pagination
-   - Use database query optimization
-   - Add API rate limiting
+### Performance Optimization
 
-### WordPress Optimization
-
-1. **Frontend Optimization**:
-   - Minify CSS/JS files
-   - Use browser caching
-   - Optimize images
-
-2. **Performance Monitoring**:
-   - Monitor API response times
-   - Track search usage patterns
-   - Optimize based on user behavior
+- Use database indexing for search fields
+- Implement caching (Redis/Memcached)
+- Configure Apache for compression and caching
+- Consider CDN for static files
+- Monitor with tools like New Relic or Datadog
 
 ## Support
 
-For issues, questions, or contributions:
-
-1. Check the troubleshooting section above
-2. Review Django and WordPress logs
-3. Create an issue in the GitHub repository
-4. Contact the URI Libraries development team
+- **Issues**: [GitHub Issues](https://github.com/uri-libraries/uascsearch/issues)
+- **Documentation**: Check included markdown files
+- **Logs**: Always include relevant log output when reporting issues
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Changelog
-
-### Version 1.0.0
-- Initial release
-- Django backend with XML indexing
-- WordPress plugin with search interface
-- Support for 283+ XML files from URI web archives
-- Responsive design with pagination
-- Production deployment instructions
+MIT License - see LICENSE file for details.

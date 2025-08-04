@@ -10,7 +10,7 @@ import re
 def search(request):
     query = request.GET.get('q', '')
     page = request.GET.get('page', 1)
-    per_page = min(int(request.GET.get('per_page', 10)), 50)  # Max 50 results per page
+    per_page = min(int(request.GET.get('per_page', 10)), 50)
 
     if not query:
         return Response({
@@ -19,7 +19,6 @@ def search(request):
             'message': 'Please provide a search query'
         })
 
-    # Search in relevant fields only
     results = XMLDocument.objects.filter(
         Q(title__icontains=query) |
         Q(creator__icontains=query) |
@@ -27,24 +26,15 @@ def search(request):
         Q(abstract__icontains=query)
     ).order_by('-updated_at')
 
-    # Paginate results
     paginator = Paginator(results, per_page)
     page_obj = paginator.get_page(page)
 
     def highlight_text(text, query):
-        """Add HTML highlighting to search terms"""
         if not query or not text:
             return text
-
-        # Escape HTML in the text first
         text = str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-
-        # Create a pattern that matches the query (case insensitive)
         pattern = re.compile(re.escape(query), re.IGNORECASE)
-
-        # Replace with highlighted version
         highlighted = pattern.sub(f'<mark>{query}</mark>', text)
-
         return highlighted
 
     response_data = {
@@ -71,8 +61,9 @@ def search(request):
     return Response(response_data)
 
 def standalone_search(request):
-    """
-    Render the standalone HTML search page for use in an iframe or direct access.
-    Place your standalone-search.html template in the templates directory.
-    """
-    return render(request, "standalone-search.html")
+    """Render standalone search page for iframe embedding"""
+    return render(request, "search_app/standalone-search.html")
+
+def search_page(request):
+    """Render main search page with full site layout"""
+    return render(request, "search_app/search-page.html")

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,12 +21,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-g9^z*(ag!&)v-&5e595i7x9eh)49^$k#ly=vchsvm5aittqk#e'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-g9^z*(ag!&)v-&5e595i7x9eh)49^$k#ly=vchsvm5aittqk#e')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'webarchives.apps.uri.edu']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '3.144.142.180',
+    'victorianjewishwritersproject.org',
+    'webarchives.apps.uri.edu',
+]
 
 
 # Application definition
@@ -37,7 +44,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_extensions',
     
     # Third-party apps
     'rest_framework',
@@ -46,6 +52,10 @@ INSTALLED_APPS = [
     # Your app
     'search_app.apps.SearchAppConfig',
 ]
+
+# Add development apps when in DEBUG mode
+if DEBUG:
+    INSTALLED_APPS.append('django_extensions')
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Must be at the top
@@ -58,12 +68,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'uascsearch.urls'
+ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -76,7 +86,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'uascsearch.wsgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
@@ -124,28 +134,51 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10
+}
+
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # For development
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
-    "https://web.uri.edu",
-    "http://web.uri.edu",
-    "https://webarchives.apps.uri.edu",
-    "http://webarchives.apps.uri.edu",
+    'https://web.uri.edu',
+    'http://web.uri.edu',
+    'https://webarchives.apps.uri.edu',
+    'http://webarchives.apps.uri.edu',
+    'https://victorianjewishwritersproject.org',
+    'http://victorianjewishwritersproject.org',
 ]
 
-# XML Search Settings
+# Allow embedding in iframes (for WordPress integration)
+X_FRAME_OPTIONS = 'ALLOWALL'  # For production, use 'SAMEORIGIN' or specific domains
+
+# XML Search settings
 XML_SEARCH_SETTINGS = {
-    'DEFAULT_REQUEST_DELAY': 1.0,  # Default delay between requests
-    'REQUEST_TIMEOUT': 30,         # Request timeout in seconds
-    'MAX_FILE_SIZE': 10 * 1024 * 1024,  # 10MB max file size
+    'REQUEST_TIMEOUT': 30,
+    'MAX_FILE_SIZE': 10 * 1024 * 1024,  # 10MB
+    'DEFAULT_REQUEST_DELAY': 1.0,
     'ALLOWED_EXTENSIONS': ['.xml', '.rdf', '.atom', '.rss'],
 }
 
-X_FRAME_OPTIONS = 'ALLOWALL'
+# Production settings (uncomment for production)
+if not DEBUG:
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'SAMEORIGIN'  # More secure for production
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
