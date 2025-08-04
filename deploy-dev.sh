@@ -38,10 +38,6 @@ fi
 echo "Updating system packages..."
 $PACKAGE_MANAGER update -y --skip-broken
 
-# Install EPEL repository
-echo "Installing EPEL repository..."
-$PACKAGE_MANAGER install -y epel-release
-
 # Install required packages for development
 echo "Installing required packages..."
 $PACKAGE_MANAGER install -y python3 python3-pip python3-devel git gcc sqlite-devel
