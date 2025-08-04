@@ -45,13 +45,18 @@ if [ "$PACKAGE_MANAGER" = "yum" ]; then
     # Install additional development tools
     $PACKAGE_MANAGER groupinstall -y "Development Tools"
 else
-    # Amazon Linux 2022+
-    $PACKAGE_MANAGER install -y httpd python3 python3-pip python3-devel httpd-devel python3-mod_wsgi git gcc
+    # Amazon Linux 2022+/2023 - mod_wsgi not available as package
+    $PACKAGE_MANAGER install -y httpd python3 python3-pip python3-devel httpd-devel git gcc
+    echo "Installing mod_wsgi via pip..."
+    pip3 install mod_wsgi
+    echo "Configuring mod_wsgi for Apache..."
+    MOD_WSGI_CONFIG=$(mod_wsgi-express module-config)
+    echo "$MOD_WSGI_CONFIG" > /etc/httpd/conf.modules.d/10-wsgi.conf
 fi
 
-# Install mod_wsgi if not available via package manager
+# Install mod_wsgi if not available via package manager (fallback for Amazon Linux 2)
 if ! httpd -M 2>/dev/null | grep -q wsgi_module; then
-    echo "Installing mod_wsgi from pip..."
+    echo "Installing mod_wsgi from pip (fallback)..."
     pip3 install mod_wsgi
     
     # Get mod_wsgi configuration

@@ -46,7 +46,17 @@ $PACKAGE_MANAGER install -y python3 python3-pip python3-devel git gcc sqlite-dev
 read -p "Install Apache httpd for production testing? (y/n): " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    $PACKAGE_MANAGER install -y httpd httpd-devel python3-mod_wsgi
+    $PACKAGE_MANAGER install -y httpd httpd-devel
+    # Check if python3-mod_wsgi package exists
+    if $PACKAGE_MANAGER list available python3-mod_wsgi &>/dev/null; then
+        $PACKAGE_MANAGER install -y python3-mod_wsgi
+    else
+        echo "Installing mod_wsgi via pip..."
+        pip3 install mod_wsgi
+        echo "Configuring mod_wsgi for Apache..."
+        MOD_WSGI_PATH=$(python3 -c "import mod_wsgi; print(mod_wsgi.server_config_file())")
+        echo "Include $MOD_WSGI_PATH" > /etc/httpd/conf.modules.d/10-wsgi.conf
+    fi
     systemctl enable httpd
     echo "Apache installed and enabled"
 fi
