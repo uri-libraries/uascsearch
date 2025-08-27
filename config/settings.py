@@ -27,10 +27,9 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-g9^z*(ag!&)v-&5e595i7
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '3.144.142.180',
-    'victorianjewishwritersproject.org',
+    'uri.edu',
+    'uascsearch.library.uri.edu',
+    '10.140.10.103',
     'webarchives.apps.uri.edu',
 ]
 
