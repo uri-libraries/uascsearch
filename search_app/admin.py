@@ -11,6 +11,10 @@ import time
 import os
 
 class XMLDocumentAdmin(admin.ModelAdmin):
+    def save_model(self, request, obj, form, change):
+        if 'title' in form.changed_data:
+            obj.title_manually_edited = True
+        super().save_model(request, obj, form, change)
     list_display = ['clean_filename', 'clean_title', 'clean_creator', 'indexed_at', 'file_size']
     list_filter = ['indexed_at', 'content_type']
     search_fields = ['filename', 'title', 'creator', 'abstract']

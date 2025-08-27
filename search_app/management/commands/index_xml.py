@@ -82,20 +82,19 @@ class Command(BaseCommand):
                     extracted_fields = self.extract_fields_from_content(content, raw_xml=raw_xml)
                     
                     # Save to database (only store extracted fields to save space)
-                    document, created = XMLDocument.objects.update_or_create(
-                        filename=filename,
-                        defaults={
-                            'content': '',  # Don't store full content to save space
-                            'title': extracted_fields.get('title', ''),
-                            'creator': extracted_fields.get('creator', ''),
-                            'dates': extracted_fields.get('dates', ''),
-                            'abstract': extracted_fields.get('abstract', ''),
-                            'url': xml_file,
-                            'file_size': len(response.content),
-                            'last_modified': response.headers.get('Last-Modified', ''),
-                            'content_type': response.headers.get('Content-Type', ''),
-                        }
-                    )
+                    document, created = XMLDocument.objects.get_or_create(filename=filename)
+                    # Only update title if not manually edited
+                    if not document.title_manually_edited:
+                        document.title = extracted_fields.get('title', '')
+                    document.creator = extracted_fields.get('creator', '')
+                    document.dates = extracted_fields.get('dates', '')
+                    document.abstract = extracted_fields.get('abstract', '')
+                    document.url = xml_file
+                    document.file_size = len(response.content)
+                    document.last_modified = response.headers.get('Last-Modified', '')
+                    document.content_type = response.headers.get('Content-Type', '')
+                    document.content = ''  # Don't store full content to save space
+                    document.save()
                     
                     indexed_count += 1
                     self.stdout.write(f'✓ Indexed: {filename} (Title: {extracted_fields.get("title", "N/A")[:50]}...)')

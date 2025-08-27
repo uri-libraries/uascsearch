@@ -7,6 +7,7 @@ class XMLDocument(models.Model):
     filename = models.CharField(max_length=255, unique=True)
     # Store only relevant content fields
     title = models.CharField(max_length=500, blank=True)
+    title_manually_edited = models.BooleanField(default=False)
     creator = models.TextField(blank=True)
     dates = models.TextField(blank=True)
     abstract = models.TextField(blank=True)
