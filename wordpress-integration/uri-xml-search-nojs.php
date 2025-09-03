@@ -16,7 +16,7 @@ class URIXMLSearchNoJS {
     private $api_base_url;
     
     public function __construct() {
-        $this->api_base_url = get_option('uri_xml_search_api_url', 'http://127.0.0.1:8000');
+        $this->api_base_url = get_option('uri_xml_search_api_url', 'https://uascsearch.library.uri.edu');
         
         add_action('wp_enqueue_scripts', array($this, 'enqueue_styles'));
         add_shortcode('uri_xml_search', array($this, 'search_shortcode'));
@@ -196,7 +196,7 @@ class URIXMLSearchNoJS {
             echo '<div class="notice notice-success"><p>Settings saved!</p></div>';
         }
         
-        $api_url = get_option('uri_xml_search_api_url', 'http://127.0.0.1:8000');
+        $api_url = get_option('uri_xml_search_api_url', 'https://uascsearch.library.uri.edu');
         ?>
         <div class="wrap">
             <h1>URI XML Search Settings</h1>
@@ -206,7 +206,7 @@ class URIXMLSearchNoJS {
                         <th scope="row">API Base URL</th>
                         <td>
                             <input type="url" name="api_url" value="<?php echo esc_attr($api_url); ?>" class="regular-text" />
-                            <p class="description">The base URL of your Django API (e.g., http://127.0.0.1:8000)</p>
+                            <p class="description">The base URL of your Django API (e.g., https://uascsearch.library.uri.edu)</p>
                         </td>
                     </tr>
                 </table>
@@ -216,15 +216,7 @@ class URIXMLSearchNoJS {
             <h2>Usage</h2>
             <p>Add this shortcode to any page or post:</p>
             <code>[uri_xml_search placeholder="Search manuscripts..." button_text="Search"]</code>
-            
-            <h2>Features</h2>
-            <ul>
-                <li>✅ No JavaScript required</li>
-                <li>✅ Works on locked-down WordPress sites</li>
-                <li>✅ Search results display on same page</li>
-                <li>✅ Pagination support</li>
-                <li>✅ Responsive design</li>
-            </ul>
+        
         </div>
         <?php
     }
