@@ -34,7 +34,8 @@ def search(request):
             return text
         text = str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         pattern = re.compile(re.escape(query), re.IGNORECASE)
-        highlighted = pattern.sub(f'<mark>{query}</mark>', text)
+        # Use a lambda function to preserve the original text's capitalization
+        highlighted = pattern.sub(lambda match: f'<mark>{match.group(0)}</mark>', text)
         return highlighted
 
     response_data = {

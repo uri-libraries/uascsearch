@@ -112,9 +112,25 @@ class URIXMLSearchNoJS {
             foreach ($data['results'] as $result) {
                 $html .= '<div class="uri-xml-result-item">';
                 $html .= '<h4 class="uri-xml-result-title">';
-                $html .= '<a href="' . esc_url($result['url']) . '" target="_blank">' . esc_html(urldecode($result['filename'])) . '</a>';
+                
+                // Use the clean title instead of filename and handle <mark> tags
+                $display_title = !empty($result['title']) ? $result['title'] : urldecode($result['filename']);
+                // Convert <mark> tags to <strong> tags for bold highlighting in titles too
+                $display_title = str_replace('<mark>', '<strong>', $display_title);
+                $display_title = str_replace('</mark>', '</strong>', $display_title);
+                $html .= '<a href="' . esc_url($result['url']) . '" target="_blank">' . wp_kses($display_title, array('strong' => array())) . '</a>';
+                
                 $html .= '</h4>';
-                $html .= '<p class="uri-xml-result-snippet">' . esc_html($result['snippet']) . '</p>';
+                
+                // Optionally show filename as metadata if it's different from title
+                if (!empty($result['title']) && $result['title'] !== urldecode($result['filename'])) {
+                    $html .= '<p class="uri-xml-filename">File: ' . esc_html(urldecode($result['filename'])) . '</p>';
+                }
+                
+                // Convert <mark> tags to <strong> tags for bold highlighting and allow HTML rendering
+                $snippet = str_replace('<mark>', '<strong>', $result['snippet']);
+                $snippet = str_replace('</mark>', '</strong>', $snippet);
+                $html .= '<p class="uri-xml-result-snippet">' . wp_kses($snippet, array('strong' => array())) . '</p>';
                 $html .= '<div class="uri-xml-result-meta">';
                 $html .= '<span class="uri-xml-file-size">Size: ' . $this->format_file_size($result['file_size']) . '</span>';
                 if (!empty($result['last_modified'])) {
