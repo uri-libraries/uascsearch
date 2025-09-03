@@ -192,10 +192,26 @@ class Command(BaseCommand):
 
         try:
             if raw_xml:
-                # Title
-                m = re.search(r'<titleproper[^>]*encodinganalog=["\']245\$a["\'][^>]*>(.*?)</titleproper>', raw_xml, re.IGNORECASE|re.DOTALL)
-                if m:
-                    fields['title'] = re.sub(r'<.*?>', '', m.group(1)).strip()
+                # Title - try multiple patterns for better extraction
+                title_patterns = [
+                    # Standard EAD titleproper with various encodinganalog formats
+                    r'<titleproper[^>]*encodinganalog=["\']245\$a["\'][^>]*>(.*?)</titleproper>',
+                    r'<titleproper[^>]*encodinganalog=["\']245[^"\']*["\'][^>]*>(.*?)</titleproper>',
+                    r'<titleproper[^>]*>(.*?)</titleproper>',
+                    # EAD unittitle (very common)
+                    r'<did[^>]*>.*?<unittitle[^>]*>(.*?)</unittitle>.*?</did>',
+                    r'<unittitle[^>]*>(.*?)</unittitle>',
+                    # Generic title tags
+                    r'<title[^>]*>(.*?)</title>',
+                ]
+                
+                for pattern in title_patterns:
+                    m = re.search(pattern, raw_xml, re.IGNORECASE|re.DOTALL)
+                    if m:
+                        title = re.sub(r'<.*?>', '', m.group(1)).strip()
+                        if title and len(title) > 3:  # Must be substantial
+                            fields['title'] = title
+                            break
 
                 # Abstract
                 m = re.search(r'<abstract[^>]*encodinganalog=["\']520\$a["\'][^>]*>(.*?)</abstract>', raw_xml, re.IGNORECASE|re.DOTALL)
@@ -236,8 +252,19 @@ class Command(BaseCommand):
             # Clean up extracted fields
             for key in fields:
                 if fields[key]:
+                    # URL decode
                     fields[key] = urllib.parse.unquote(fields[key])
+                    # Remove common artifacts
+                    if key == 'title':
+                        fields[key] = re.sub(r'^\d+-\d+-\d+\s*onLoad.*?Website:\s*', '', fields[key], flags=re.IGNORECASE)
+                        fields[key] = re.sub(r'^mailto:.*?Website:\s*', '', fields[key], flags=re.IGNORECASE)
+                        fields[key] = re.sub(r'onLoad', '', fields[key], flags=re.IGNORECASE)
+                        fields[key] = re.sub(r'Website:', '', fields[key], flags=re.IGNORECASE)
+                        # Remove leading/trailing punctuation and extra whitespace
+                        fields[key] = fields[key].strip('.,;:- ')
+                    # Normalize whitespace
                     fields[key] = re.sub(r'\s+', ' ', fields[key]).strip()
+                    # Truncate
                     fields[key] = fields[key][:500]
 
         except Exception as e:
