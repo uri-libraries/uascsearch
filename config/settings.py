@@ -57,6 +57,7 @@ if DEBUG:
     INSTALLED_APPS.append('django_extensions')
 
 MIDDLEWARE = [
+    'search_app.middleware.RootRedirectMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # Must be at the top
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
