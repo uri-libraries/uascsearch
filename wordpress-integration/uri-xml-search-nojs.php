@@ -1,12 +1,12 @@
 <?php
 /**
- * Plugin Name: URI XML Search (No JS)
- * Description: Server-side XML search for locked-down WordPress sites
+ * Plugin Name: UASC Search -> API call to UASC-Django app
+ * Description: Server-side XML search for University Archives and Special Collections 
  * Version: 1.0
- * Author: URI Libraries
+ * brandon.katzir@uri.edu
  */
 
-// Prevent direct access
+// Prevents direct access
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -22,7 +22,7 @@ class URIXMLSearchNoJS {
         add_shortcode('uri_xml_search', array($this, 'search_shortcode'));
         add_action('admin_menu', array($this, 'admin_menu'));
         
-        // Handle search processing
+        // search processing
         add_action('init', array($this, 'handle_search'));
     }
     
@@ -238,6 +238,6 @@ class URIXMLSearchNoJS {
     }
 }
 
-// Initialize the plugin
+// Initialize plugin
 new URIXMLSearchNoJS();
 ?>
