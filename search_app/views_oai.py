@@ -19,14 +19,14 @@ ET.register_namespace('dc',     DC)
 ET.register_namespace('xsi',    XSI)
 
 REPO_NAME      = 'URI Archives & Special Collections Finding Aids'
-BASE_URL       = 'https://webarchives.apps.uri.edu/oai/'
+BASE_URL       = 'https://uascsearch.library.uri.edu/oai/'
 ADMIN_EMAIL    = 'archives@uri.edu'
 EARLIEST_STAMP = '2020-01-01T00:00:00Z'
 PAGE_SIZE      = 100
 OAI_PREFIX     = 'oai_dc'
 SET_SPEC       = 'finding-aids'
 SET_NAME       = 'URI Archival Finding Aids'
-OAI_ID_PREFIX  = 'oai:webarchives.apps.uri.edu:'
+OAI_ID_PREFIX  = 'oai:uascsearch.library.uri.edu:'
 
 
 @require_GET
