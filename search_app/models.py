@@ -26,7 +26,7 @@ class XMLDocument(models.Model):
 
     def get_oai_identifier(self):
         base = self.eadid if self.eadid else self.filename.rsplit('.', 1)[0]
-        return f'oai:webarchives.apps.uri.edu:{base}'
+        return f'oai:uascsearch.library.uri.edu:{base}'
 
     def __str__(self):
         return self.title or self.filename

@@ -61,6 +61,15 @@ def oai_endpoint(request):
         handlers[verb](request, root)
 
     xml_str = ET.tostring(root, encoding='unicode')
+    # Inject self-contained namespace declarations on <oai_dc:dc> so that Alma
+    # can parse the extracted <metadata> block without its parent context.
+    ns_decls = (
+        f'xmlns:oai_dc="{OADC}" xmlns:dc="{DC}" xmlns:xsi="{XSI}" '
+    )
+    xml_str = xml_str.replace(
+        '<oai_dc:dc xsi:schemaLocation=',
+        f'<oai_dc:dc {ns_decls}xsi:schemaLocation=',
+    )
     return HttpResponse(
         '<?xml version="1.0" encoding="UTF-8"?>\n' + xml_str,
         content_type='text/xml; charset=utf-8',
