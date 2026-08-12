@@ -15,11 +15,18 @@ class XMLDocument(models.Model):
     content = models.TextField(blank=True)  # Make this optional
     subjects = models.TextField(blank=True)  # Store extracted subject terms
     url = models.URLField(blank=True, null=True)
+    eadid = models.CharField(max_length=255, blank=True)
+    public_url = models.URLField(blank=True)
+    is_deleted = models.BooleanField(default=False)
     file_size = models.IntegerField(default=0)
     last_modified = models.CharField(max_length=255, blank=True)
     content_type = models.CharField(max_length=100, blank=True)
     indexed_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def get_oai_identifier(self):
+        base = self.eadid if self.eadid else self.filename.rsplit('.', 1)[0]
+        return f'oai:webarchives.apps.uri.edu:{base}'
 
     def __str__(self):
         return self.title or self.filename

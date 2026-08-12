@@ -71,7 +71,7 @@ class XMLDocumentAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('File Information', {
-            'fields': ('clean_filename_display', 'url', 'file_size', 'content_type', 'last_modified')
+            'fields': ('clean_filename_display', 'eadid', 'url', 'public_url', 'is_deleted', 'file_size', 'content_type', 'last_modified')
         }),
         ('Content Fields', {
             'fields': ('clean_title_display', 'clean_creator_display', 'dates', 'clean_abstract_display')

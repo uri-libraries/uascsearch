@@ -89,6 +89,11 @@ class Command(BaseCommand):
                     document.creator = extracted_fields.get('creator', '')
                     document.dates = extracted_fields.get('dates', '')
                     document.abstract = extracted_fields.get('abstract', '')
+                    document.subjects = extracted_fields.get('subjects', '')
+                    if extracted_fields.get('eadid'):
+                        document.eadid = extracted_fields['eadid']
+                    if extracted_fields.get('public_url'):
+                        document.public_url = extracted_fields['public_url']
                     document.url = xml_file
                     document.file_size = len(response.content)
                     document.last_modified = response.headers.get('Last-Modified', '')
@@ -187,7 +192,9 @@ class Command(BaseCommand):
             'creator': '',
             'dates': '',
             'abstract': '',
-            'subjects': ''
+            'subjects': '',
+            'eadid': '',
+            'public_url': '',
         }
 
         try:
@@ -228,6 +235,20 @@ class Command(BaseCommand):
                 if subjects:
                     clean_subjects = [re.sub(r'<.*?>', '', s).strip() for s in subjects]
                     fields['subjects'] = '; '.join([s for s in clean_subjects if s])
+
+                # EADID and public URL from its url attribute
+                m = re.search(r'<eadid([^>]*)>(.*?)</eadid>', raw_xml, re.IGNORECASE|re.DOTALL)
+                if m:
+                    fields['eadid'] = re.sub(r'<.*?>', '', m.group(2)).strip()
+                    url_attr = re.search(r'\surl=["\'](.*?)["\']', m.group(1), re.IGNORECASE)
+                    if url_attr:
+                        fields['public_url'] = url_attr.group(1).strip()
+
+                # Dates from unitdate if not already set
+                if not fields['dates']:
+                    m = re.search(r'<unitdate[^>]*>(.*?)</unitdate>', raw_xml, re.IGNORECASE|re.DOTALL)
+                    if m:
+                        fields['dates'] = re.sub(r'<.*?>', '', m.group(1)).strip()
 
             # Fallbacks for title if not found
             if not fields['title'] and raw_xml:
