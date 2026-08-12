@@ -255,9 +255,10 @@ def _record_elem(parent, doc, include_metadata):
     if doc.eadid:
         ET.SubElement(dc, f'{{{DC}}}identifier').text = doc.eadid
 
+    # dc:source carries the delivery URL so Alma can map it to linktorsrc without conditional logic
     delivery_url = doc.public_url or doc.url or ''
     if delivery_url:
-        ET.SubElement(dc, f'{{{DC}}}identifier').text = delivery_url
+        ET.SubElement(dc, f'{{{DC}}}source').text = delivery_url
 
     ET.SubElement(dc, f'{{{DC}}}publisher').text = \
         'University of Rhode Island Libraries'
