@@ -11,6 +11,16 @@ import time
 import os
 import json
 
+
+def dublin_core_field(field):
+    def display(self, obj):
+        values = obj.get_dublin_core().get(field, [])
+        return format_html('<br>'.join(['{}'] * len(values)), *values) if values else ''
+
+    display.short_description = f'Dublin Core {field.title()}'
+    return display
+
+
 class XMLDocumentAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if 'title' in form.changed_data:
@@ -21,7 +31,28 @@ class XMLDocumentAdmin(admin.ModelAdmin):
     search_fields = ['filename', 'title', 'creator', 'abstract']
     readonly_fields = ['indexed_at', 'updated_at', 'file_size', 'last_modified',
                       'clean_filename_display', 'clean_title_display', 'clean_creator_display',
-                      'clean_abstract_display', 'metadata_display', 'dublin_core_display']
+                      'clean_abstract_display', 'metadata_display', 'dublin_core_display',
+                      'dublin_core_title', 'dublin_core_creator', 'dublin_core_subject',
+                      'dublin_core_description', 'dublin_core_publisher', 'dublin_core_contributor',
+                      'dublin_core_date', 'dublin_core_type', 'dublin_core_format',
+                      'dublin_core_identifier', 'dublin_core_source', 'dublin_core_language',
+                      'dublin_core_relation', 'dublin_core_coverage', 'dublin_core_rights']
+
+    dublin_core_title = dublin_core_field('title')
+    dublin_core_creator = dublin_core_field('creator')
+    dublin_core_subject = dublin_core_field('subject')
+    dublin_core_description = dublin_core_field('description')
+    dublin_core_publisher = dublin_core_field('publisher')
+    dublin_core_contributor = dublin_core_field('contributor')
+    dublin_core_date = dublin_core_field('date')
+    dublin_core_type = dublin_core_field('type')
+    dublin_core_format = dublin_core_field('format')
+    dublin_core_identifier = dublin_core_field('identifier')
+    dublin_core_source = dublin_core_field('source')
+    dublin_core_language = dublin_core_field('language')
+    dublin_core_relation = dublin_core_field('relation')
+    dublin_core_coverage = dublin_core_field('coverage')
+    dublin_core_rights = dublin_core_field('rights')
     
     def clean_filename(self, obj):
         """Display filename with URL decoding and cleaned up"""
@@ -89,8 +120,12 @@ class XMLDocumentAdmin(admin.ModelAdmin):
             'description': 'Every XML element, path, value, and attribute extracted from the source EAD file.'
         }),
         ('Dublin Core Metadata', {
-            'fields': ('dublin_core_display',),
-            'classes': ('collapse',),
+            'fields': ('dublin_core_title', 'dublin_core_creator', 'dublin_core_subject',
+                       'dublin_core_description', 'dublin_core_publisher', 'dublin_core_contributor',
+                       'dublin_core_date', 'dublin_core_type', 'dublin_core_format',
+                       'dublin_core_identifier', 'dublin_core_source', 'dublin_core_language',
+                       'dublin_core_relation', 'dublin_core_coverage', 'dublin_core_rights',
+                       'dublin_core_display'),
             'description': 'Normalized Dublin Core values for display and Primo ingestion.'
         }),
         ('Full Content', {

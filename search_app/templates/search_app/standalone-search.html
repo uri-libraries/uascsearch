@@ -16,6 +16,7 @@
         .result-item { background: white; padding: 15px; margin-bottom: 15px; border-left: 4px solid #0073aa; }
         .result-title a { color: #0073aa; text-decoration: none; font-weight: bold; }
         .result-snippet { color: #666; margin: 8px 0; }
+        .result-dublin-core { color: #555; font-size: 0.9em; margin: 8px 0; }
         .result-meta { font-size: 0.9em; color: #999; }
         .loading, .error { text-align: center; padding: 20px; }
         .error { background: #ffebee; color: #c62828; border-left: 4px solid #c62828; }
@@ -66,6 +67,15 @@
                 let title = result.title || result.filename || '';
                 title = decodeURIComponent(title).replace(/\.xml$/i, '').replace(/_/g, ' ').trim();
                 if (title.length > 80) title = title.substring(0, 77) + '...';
+                const dublinCore = result.dublin_core || {};
+                const fields = [
+                    ['Creator', dublinCore.creator],
+                    ['Date', dublinCore.date],
+                    ['Subject', dublinCore.subject],
+                    ['Identifier', dublinCore.identifier]
+                ].filter(([, values]) => values && values.length)
+                    .map(([label, values]) => `<strong>${label}:</strong> ${escapeHtml(values.join('; '))}`)
+                    .join(' | ');
 
                 html += `
                     <div class="result-item">
@@ -73,6 +83,7 @@
                             <a href="${result.url}" target="_blank">${title}</a>
                         </div>
                         <div class="result-snippet">${result.snippet}</div>
+                        ${fields ? `<div class="result-dublin-core">${fields}</div>` : ''}
                         <div class="result-meta">
                             ${result.file_size ? formatFileSize(result.file_size) : ''} | 
                             ${result.last_modified ? new Date(result.last_modified).toLocaleDateString() : ''}
@@ -81,6 +92,11 @@
                 `;
             });
             resultsContainer.innerHTML = html;
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
         
         function formatFileSize(bytes) {

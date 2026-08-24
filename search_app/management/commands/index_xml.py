@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from search_app.models import XMLDocument
+from search_app.models import XMLDocument, normalize_dublin_core
 import xml.etree.ElementTree as ET
 import requests
 import os
@@ -258,9 +258,7 @@ class Command(BaseCommand):
             'coverage': add(*values(('geogname',))),
             'rights': add(*values(('userestrict', 'accessrestrict'))),
         }
-        for key in dublin_core:
-            dublin_core[key] = [value[:32000] for value in dublin_core[key] if value]
-        return dublin_core
+        return normalize_dublin_core(dublin_core)
 
     def extract_fields_from_content(self, content, raw_xml=None):
         """Extract specific fields from XML content (or text content)"""

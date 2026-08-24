@@ -22,6 +22,7 @@
         .result-title a { color: #0073aa; text-decoration: none; }
         .result-title a:hover { text-decoration: underline; }
         .result-snippet { color: #666; margin: 10px 0; line-height: 1.6; }
+        .result-dublin-core { color: #555; font-size: 0.9em; margin: 10px 0; }
         .result-meta { font-size: 0.9em; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
         .loading, .error, .no-results { text-align: center; padding: 30px; }
         .error { background: #ffebee; color: #c62828; border-left: 5px solid #c62828; }
@@ -100,6 +101,15 @@
                 title = decodeURIComponent(title).replace(/\.xml$/i, '').replace(/_/g, ' ').trim();
                 
                 let snippet = result.snippet || 'No preview available.';
+                const dublinCore = result.dublin_core || {};
+                const fields = [
+                    ['Creator', dublinCore.creator],
+                    ['Date', dublinCore.date],
+                    ['Subject', dublinCore.subject],
+                    ['Identifier', dublinCore.identifier]
+                ].filter(([, values]) => values && values.length)
+                    .map(([label, values]) => `<strong>${label}:</strong> ${escapeHtml(values.join('; '))}`)
+                    .join(' | ');
                 
                 html += `
                     <div class="result-item">
@@ -107,6 +117,7 @@
                             <a href="${result.url}" target="_blank">${title}</a>
                         </div>
                         <div class="result-snippet">${snippet}</div>
+                        ${fields ? `<div class="result-dublin-core">${fields}</div>` : ''}
                         <div class="result-meta">
                             File: ${result.filename} | 
                             Size: ${result.file_size ? formatFileSize(result.file_size) : 'Unknown'} | 
@@ -116,6 +127,11 @@
                 `;
             });
             resultsContainer.innerHTML = html;
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
         
         function formatFileSize(bytes) {

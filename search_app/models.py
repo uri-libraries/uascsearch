@@ -1,7 +1,39 @@
 from django.db import models
 from django.utils import timezone
 import re
+from urllib.parse import unquote
 import xml.etree.ElementTree as ET
+
+
+def normalize_dublin_core(dublin_core):
+    """Clean repeatable Dublin Core values for API and display consumers."""
+    placeholder_patterns = (
+        r'^(?:abstract text|scope(?: and content)? note(?: for series)?|'
+        r'arrangement(?: note(?: for series)?)?|series dates)$',
+        r'^#?\s*boxes(?:\s*\([^)]*\))?$',
+        r'^corp name$',
+    )
+    normalized = {}
+
+    for field, values in (dublin_core or {}).items():
+        if isinstance(values, str):
+            values = [values]
+        cleaned_values = []
+        for value in values or []:
+            value = re.sub(r'\s+', ' ', unquote(str(value))).strip()
+            value = re.sub(r'^(?:corp(?:orate)?|personal) name\s*:?\s*', '', value, flags=re.IGNORECASE)
+            if field != 'source':
+                value = re.sub(r'\s*(?:\\+|/\s*)$', '', value).strip()
+            if not value or any(re.fullmatch(pattern, value, re.IGNORECASE) for pattern in placeholder_patterns):
+                continue
+            if re.search(r'\bX{2,}\b', value, re.IGNORECASE):
+                continue
+            if value.casefold() not in {item.casefold() for item in cleaned_values}:
+                cleaned_values.append(value[:32000])
+        normalized[field] = cleaned_values
+
+    return normalized
+
 
 class XMLDocument(models.Model):
     filename = models.CharField(max_length=255, unique=True)
@@ -33,9 +65,9 @@ class XMLDocument(models.Model):
     def get_dublin_core(self):
         """Return normalized Dublin Core fields, including legacy-record fallback."""
         if self.dublin_core:
-            return self.dublin_core
+            return normalize_dublin_core(self.dublin_core)
 
-        return {
+        return normalize_dublin_core({
             'title': [self.title] if self.title else [],
             'creator': [self.creator] if self.creator else [],
             'description': [self.abstract] if self.abstract else [],
@@ -46,7 +78,7 @@ class XMLDocument(models.Model):
             'source': [self.public_url or self.url] if (self.public_url or self.url) else [],
             'publisher': ['University of Rhode Island Libraries'],
             'rights': ['Contact the repository regarding access and reuse.'],
-        }
+        })
 
     def __str__(self):
         return self.title or self.filename

@@ -58,3 +58,26 @@ class MetadataExtractionTests(SimpleTestCase):
 		self.assertEqual(dublin_core['identifier'], ['MS001'])
 		self.assertEqual(dublin_core['source'], ['https://example.org/finding-aid'])
 		self.assertEqual(dublin_core['subject'], ['Archives'])
+
+	def test_build_dublin_core_removes_ead_artifacts_and_placeholders(self):
+		extracted_fields = {
+			'title': 'Faith McNulty Papers \\',
+			'creator': 'Faith McNulty',
+		}
+		metadata = {
+			'elements': [
+				{'name': 'corpname', 'value': 'CORP NAME Faith McNulty'},
+				{'name': 'corpname', 'value': 'CORP NAME'},
+				{'name': 'scopecontent', 'value': 'Scope and content note for series'},
+				{'name': 'extent', 'value': '# BOXES (XX linear feet)'},
+				{'name': 'subject', 'value': 'American Authors /'},
+			]
+		}
+
+		dublin_core = Command().build_dublin_core(extracted_fields, metadata)
+
+		self.assertEqual(dublin_core['title'], ['Faith McNulty Papers'])
+		self.assertEqual(dublin_core['creator'], ['Faith McNulty'])
+		self.assertEqual(dublin_core['subject'], ['American Authors'])
+		self.assertEqual(dublin_core['description'], [])
+		self.assertEqual(dublin_core['format'], [])
