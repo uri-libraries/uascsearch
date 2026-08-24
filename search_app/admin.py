@@ -21,7 +21,7 @@ class XMLDocumentAdmin(admin.ModelAdmin):
     search_fields = ['filename', 'title', 'creator', 'abstract']
     readonly_fields = ['indexed_at', 'updated_at', 'file_size', 'last_modified',
                       'clean_filename_display', 'clean_title_display', 'clean_creator_display',
-                      'clean_abstract_display', 'metadata_display']
+                      'clean_abstract_display', 'metadata_display', 'dublin_core_display']
     
     def clean_filename(self, obj):
         """Display filename with URL decoding and cleaned up"""
@@ -88,6 +88,11 @@ class XMLDocumentAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
             'description': 'Every XML element, path, value, and attribute extracted from the source EAD file.'
         }),
+        ('Dublin Core Metadata', {
+            'fields': ('dublin_core_display',),
+            'classes': ('collapse',),
+            'description': 'Normalized Dublin Core values for display and Primo ingestion.'
+        }),
         ('Full Content', {
             'fields': ('content',),
             'classes': ('collapse',),  # Collapsed by default
@@ -136,6 +141,10 @@ class XMLDocumentAdmin(admin.ModelAdmin):
     def metadata_display(self, obj):
         return json.dumps(obj.metadata or {}, indent=2, ensure_ascii=False)
     metadata_display.short_description = 'Complete XML Metadata'
+
+    def dublin_core_display(self, obj):
+        return json.dumps(obj.get_dublin_core(), indent=2, ensure_ascii=False)
+    dublin_core_display.short_description = 'Dublin Core Metadata'
     
     def get_urls(self):
         urls = super().get_urls()

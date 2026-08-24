@@ -51,6 +51,7 @@ def search(request):
                 'last_modified': doc.last_modified,
                 'indexed_at': doc.indexed_at.isoformat(),
                 'metadata': doc.metadata or {},
+                'dublin_core': doc.get_dublin_core(),
             }
             for doc in page_obj
         ],

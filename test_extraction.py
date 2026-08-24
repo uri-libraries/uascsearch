@@ -30,3 +30,31 @@ class MetadataExtractionTests(SimpleTestCase):
 			next(item['path'] for item in elements if item['name'] == 'unittitle'),
 			'/ead/archdesc/did/unittitle',
 		)
+
+	def test_build_dublin_core_maps_rich_ead_fields(self):
+		extracted_fields = {
+			'title': 'Example Collection',
+			'creator': 'Example Creator',
+			'dates': '1950-1960',
+			'abstract': 'Collection abstract',
+			'eadid': 'MS001',
+			'public_url': 'https://example.org/finding-aid',
+		}
+		metadata = {
+			'elements': [
+				{'name': 'bioghist', 'value': 'Biographical history'},
+				{'name': 'scopecontent', 'value': 'Scope and contents'},
+				{'name': 'language', 'value': 'English'},
+				{'name': 'subject', 'value': 'Archives'},
+			]
+		}
+
+		dublin_core = Command().build_dublin_core(extracted_fields, metadata)
+
+		self.assertEqual(dublin_core['title'], ['Example Collection'])
+		self.assertIn('Biographical history', dublin_core['description'])
+		self.assertIn('Scope and contents', dublin_core['description'])
+		self.assertEqual(dublin_core['language'], ['English'])
+		self.assertEqual(dublin_core['identifier'], ['MS001'])
+		self.assertEqual(dublin_core['source'], ['https://example.org/finding-aid'])
+		self.assertEqual(dublin_core['subject'], ['Archives'])

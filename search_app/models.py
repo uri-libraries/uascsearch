@@ -14,6 +14,7 @@ class XMLDocument(models.Model):
     # Keep original content for reference (optional - can be removed to save more space)
     content = models.TextField(blank=True)  # Make this optional
     metadata = models.JSONField(default=dict, blank=True)
+    dublin_core = models.JSONField(default=dict, blank=True)
     subjects = models.TextField(blank=True)  # Store extracted subject terms
     url = models.URLField(blank=True, null=True)
     eadid = models.CharField(max_length=255, blank=True)
@@ -28,6 +29,24 @@ class XMLDocument(models.Model):
     def get_oai_identifier(self):
         base = self.eadid if self.eadid else self.filename.rsplit('.', 1)[0]
         return f'oai:uascsearch.library.uri.edu:{base}'
+
+    def get_dublin_core(self):
+        """Return normalized Dublin Core fields, including legacy-record fallback."""
+        if self.dublin_core:
+            return self.dublin_core
+
+        return {
+            'title': [self.title] if self.title else [],
+            'creator': [self.creator] if self.creator else [],
+            'description': [self.abstract] if self.abstract else [],
+            'subject': [value.strip() for value in self.subjects.split(';') if value.strip()],
+            'date': [self.dates] if self.dates else [],
+            'type': ['Archival finding aid'],
+            'identifier': [self.eadid] if self.eadid else [],
+            'source': [self.public_url or self.url] if (self.public_url or self.url) else [],
+            'publisher': ['University of Rhode Island Libraries'],
+            'rights': ['Contact the repository regarding access and reuse.'],
+        }
 
     def __str__(self):
         return self.title or self.filename

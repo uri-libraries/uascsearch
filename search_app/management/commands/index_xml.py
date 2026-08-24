@@ -81,6 +81,9 @@ class Command(BaseCommand):
                     # Extract relevant fields from raw XML and text content
                     extracted_fields = self.extract_fields_from_content(content, raw_xml=raw_xml)
                     all_metadata = self.extract_all_metadata(root)
+                    dublin_core = self.build_dublin_core(
+                        extracted_fields, all_metadata, source_url=xml_file
+                    )
                     
                     # Save to database (only store extracted fields to save space)
                     document, created = XMLDocument.objects.get_or_create(filename=filename)
@@ -92,6 +95,7 @@ class Command(BaseCommand):
                     document.abstract = extracted_fields.get('abstract', '')
                     document.subjects = extracted_fields.get('subjects', '')
                     document.metadata = all_metadata
+                    document.dublin_core = dublin_core
                     if extracted_fields.get('eadid'):
                         document.eadid = extracted_fields['eadid']
                     if extracted_fields.get('public_url'):
@@ -206,6 +210,57 @@ class Command(BaseCommand):
 
         walk(root, [])
         return {'elements': elements}
+
+    def build_dublin_core(self, extracted_fields, all_metadata, source_url=''):
+        """Map EAD metadata into repeatable, normalized Dublin Core elements."""
+        elements = all_metadata.get('elements', [])
+
+        def values(names):
+            found = []
+            for element in elements:
+                if element['name'] in names and element['value']:
+                    value = element['value']
+                    if value not in found:
+                        found.append(value)
+            return found
+
+        def first(*names):
+            found = values(names)
+            return found[0] if found else ''
+
+        def add(*parts):
+            result = []
+            for part in parts:
+                if part and part not in result:
+                    result.append(part)
+            return result
+
+        dublin_core = {
+            'title': add(extracted_fields.get('title'), first('unittitle', 'titleproper', 'title')),
+            'creator': add(extracted_fields.get('creator'), *values(('origination', 'persname', 'corpname'))),
+            'subject': add(*values(('subject', 'genreform', 'geogname'))),
+            'description': add(
+                extracted_fields.get('abstract'),
+                *values(('bioghist', 'scopecontent', 'arrangement', 'acqinfo',
+                         'custodhist', 'processinfo', 'relatedmaterial',
+                         'separatedmaterial', 'prefercite', 'accessrestrict',
+                         'userestrict', 'physdesc')),
+            ),
+            'publisher': add(*values(('publisher', 'repository'))),
+            'contributor': add(*values(('author',))),
+            'date': add(extracted_fields.get('dates'), *values(('unitdate', 'date', 'creation'))),
+            'type': ['Archival finding aid'],
+            'format': add(*values(('extent', 'physdesc'))),
+            'identifier': add(extracted_fields.get('eadid')),
+            'source': add(extracted_fields.get('public_url') or source_url),
+            'language': add(*values(('language', 'langmaterial', 'langusage'))),
+            'relation': add(*values(('relatedmaterial', 'separatedmaterial'))),
+            'coverage': add(*values(('geogname',))),
+            'rights': add(*values(('userestrict', 'accessrestrict'))),
+        }
+        for key in dublin_core:
+            dublin_core[key] = [value[:32000] for value in dublin_core[key] if value]
+        return dublin_core
 
     def extract_fields_from_content(self, content, raw_xml=None):
         """Extract specific fields from XML content (or text content)"""

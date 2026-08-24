@@ -231,39 +231,10 @@ def _record_elem(parent, doc, include_metadata):
             f'{OADC} http://www.openarchives.org/OAI/2.0/oai_dc/oai_dc.xsd',
     })
 
-    if doc.title:
-        ET.SubElement(dc, f'{{{DC}}}title').text = doc.title
-
-    if doc.creator:
-        ET.SubElement(dc, f'{{{DC}}}creator').text = doc.creator
-
-    if doc.abstract:
-        # Primo's per-field maximum is 32,766 characters
-        ET.SubElement(dc, f'{{{DC}}}description').text = doc.abstract[:32000]
-
-    if doc.subjects:
-        for subj in doc.subjects.split('; '):
-            subj = subj.strip()
-            if subj:
-                ET.SubElement(dc, f'{{{DC}}}subject').text = subj
-
-    if doc.dates:
-        ET.SubElement(dc, f'{{{DC}}}date').text = doc.dates
-
-    ET.SubElement(dc, f'{{{DC}}}type').text = 'Archival finding aid'
-
-    if doc.eadid:
-        ET.SubElement(dc, f'{{{DC}}}identifier').text = doc.eadid
-
-    # dc:source carries the delivery URL so Alma can map it to linktorsrc without conditional logic
-    delivery_url = doc.public_url or doc.url or ''
-    if delivery_url:
-        ET.SubElement(dc, f'{{{DC}}}source').text = delivery_url
-
-    ET.SubElement(dc, f'{{{DC}}}publisher').text = \
-        'University of Rhode Island Libraries'
-    ET.SubElement(dc, f'{{{DC}}}rights').text = \
-        'Contact the repository regarding access and reuse.'
+    for field, values in doc.get_dublin_core().items():
+        for value in values:
+            if value:
+                ET.SubElement(dc, f'{{{DC}}}{field}').text = value[:32000]
 
 
 # ── utilities ─────────────────────────────────────────────────────────────────
