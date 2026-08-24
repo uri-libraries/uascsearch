@@ -13,6 +13,7 @@ class XMLDocument(models.Model):
     abstract = models.TextField(blank=True)
     # Keep original content for reference (optional - can be removed to save more space)
     content = models.TextField(blank=True)  # Make this optional
+    metadata = models.JSONField(default=dict, blank=True)
     subjects = models.TextField(blank=True)  # Store extracted subject terms
     url = models.URLField(blank=True, null=True)
     eadid = models.CharField(max_length=255, blank=True)

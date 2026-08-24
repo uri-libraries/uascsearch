@@ -80,6 +80,7 @@ class Command(BaseCommand):
 
                     # Extract relevant fields from raw XML and text content
                     extracted_fields = self.extract_fields_from_content(content, raw_xml=raw_xml)
+                    all_metadata = self.extract_all_metadata(root)
                     
                     # Save to database (only store extracted fields to save space)
                     document, created = XMLDocument.objects.get_or_create(filename=filename)
@@ -90,6 +91,7 @@ class Command(BaseCommand):
                     document.dates = extracted_fields.get('dates', '')
                     document.abstract = extracted_fields.get('abstract', '')
                     document.subjects = extracted_fields.get('subjects', '')
+                    document.metadata = all_metadata
                     if extracted_fields.get('eadid'):
                         document.eadid = extracted_fields['eadid']
                     if extracted_fields.get('public_url'):
@@ -180,6 +182,30 @@ class Command(BaseCommand):
             text_content.append(element.tail.strip())
             
         return ' '.join(filter(None, text_content))
+
+    def extract_all_metadata(self, root):
+        """Preserve every XML element, value, path, and attribute from an EAD record."""
+        elements = []
+
+        def walk(element, parent_path):
+            name = element.tag.rsplit('}', 1)[-1]
+            path = parent_path + [name]
+            value = ' '.join(''.join(element.itertext()).split())
+            attributes = {
+                key.rsplit('}', 1)[-1]: str(value)
+                for key, value in element.attrib.items()
+            }
+            elements.append({
+                'path': '/' + '/'.join(path),
+                'name': name,
+                'value': value,
+                'attributes': attributes,
+            })
+            for child in element:
+                walk(child, path)
+
+        walk(root, [])
+        return {'elements': elements}
 
     def extract_fields_from_content(self, content, raw_xml=None):
         """Extract specific fields from XML content (or text content)"""
