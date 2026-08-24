@@ -9,6 +9,7 @@ from .models import XMLDocument
 import threading
 import time
 import os
+import json
 
 class XMLDocumentAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
@@ -18,8 +19,9 @@ class XMLDocumentAdmin(admin.ModelAdmin):
     list_display = ['clean_filename', 'clean_title', 'clean_creator', 'indexed_at', 'file_size']
     list_filter = ['indexed_at', 'content_type']
     search_fields = ['filename', 'title', 'creator', 'abstract']
-    readonly_fields = ['indexed_at', 'updated_at', 'file_size', 'last_modified', 
-                      'clean_filename_display', 'clean_title_display', 'clean_creator_display', 'clean_abstract_display']
+    readonly_fields = ['indexed_at', 'updated_at', 'file_size', 'last_modified',
+                      'clean_filename_display', 'clean_title_display', 'clean_creator_display',
+                      'clean_abstract_display', 'metadata_display']
     
     def clean_filename(self, obj):
         """Display filename with URL decoding and cleaned up"""
@@ -77,9 +79,14 @@ class XMLDocumentAdmin(admin.ModelAdmin):
             'fields': ('clean_title_display', 'clean_creator_display', 'dates', 'clean_abstract_display')
         }),
         ('Raw Fields', {
-            'fields': ('filename', 'title', 'creator', 'abstract'),
+            'fields': ('filename', 'title', 'creator', 'abstract', 'subjects'),
             'classes': ('collapse',),
             'description': 'Raw stored data (URL-encoded)'
+        }),
+        ('Complete XML Metadata', {
+            'fields': ('metadata_display',),
+            'classes': ('collapse',),
+            'description': 'Every XML element, path, value, and attribute extracted from the source EAD file.'
         }),
         ('Full Content', {
             'fields': ('content',),
@@ -125,6 +132,10 @@ class XMLDocumentAdmin(admin.ModelAdmin):
         cleaned = re.sub(r'primary \d+\$[a-z].*', '', cleaned)
         return cleaned
     clean_abstract_display.short_description = 'Clean Abstract'
+
+    def metadata_display(self, obj):
+        return json.dumps(obj.metadata or {}, indent=2, ensure_ascii=False)
+    metadata_display.short_description = 'Complete XML Metadata'
     
     def get_urls(self):
         urls = super().get_urls()

@@ -23,7 +23,9 @@ def search(request):
         Q(title__icontains=query) |
         Q(creator__icontains=query) |
         Q(dates__icontains=query) |
-        Q(abstract__icontains=query)
+        Q(abstract__icontains=query) |
+        Q(subjects__icontains=query) |
+        Q(metadata__icontains=query)
     ).order_by('-updated_at')
 
     paginator = Paginator(results, per_page)
@@ -48,6 +50,7 @@ def search(request):
                 'file_size': doc.file_size,
                 'last_modified': doc.last_modified,
                 'indexed_at': doc.indexed_at.isoformat(),
+                'metadata': doc.metadata or {},
             }
             for doc in page_obj
         ],
